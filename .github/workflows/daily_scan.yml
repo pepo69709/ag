@@ -2,9 +2,9 @@ name: Daily Stock Scan & Portfolio Patrol
 
 on:
   schedule:
-    # 毎日日本時間 16:05 (UTC 07:05) に実行
-    - cron: '5 7 * * *'
-  workflow_dispatch: # 手動で実行したい時用
+    # 毎日日本時間 09:00〜15:30 の間、30分おきに自動実行 (UTC 00:00〜06:30)
+    - cron: '*/30 0-6 * * *'
+  workflow_dispatch: # 手動実行ボタンも残します
 
 jobs:
   build:
