@@ -15,8 +15,8 @@ RSI_THRESHOLD = 60    # RSIがこれ以下の時だけ買う (買われすぎ防
 VOL_FACTOR = 1.5      # 出来高が直近平均より何倍増えたら「本気」とみなすか
 
 # 3. Discord連携
-# ここにコピーした Webhook URL を貼り付けてください
-DISCORD_WEBHOOK_URL = "https://discordapp.com/api/webhooks/1478609093047488602/BPfblMXMnB0fAzAdwfVnAg0ipFvpGxyP-vWIaDRmZd7D6vcdtEW1qJFNUzHfZRsl6jTy"
+import os
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "ここにあなたのURLを入力してください(ローカル用)")
 
 # 4. 監視銘柄リスト (TOPIX500などの主要銘柄から抜粋した100社)
 # 銘柄を追加・削除したい場合はここを編集してください

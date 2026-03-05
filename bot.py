@@ -123,4 +123,10 @@ async def portfolio(ctx):
     await ctx.send(report if report else "現在の保有銘柄に「売り時」のサインはありません。順調です！✨")
 
 if __name__ == "__main__":
-    bot.run("MTQ3ODg4NjcxMjc4MzY3MTQ5Ng.GU8qud.Wj_bxBm-TNWQWA_g5ZJbDeG-v_QBJ-_r0MFj34")
+    # セキュリティのため、環境変数からトークンを読み込みます
+    # ローカルで実行する場合は、PCの環境変数に登録するか、一時的に書き換えてください
+    token = os.environ.get("DISCORD_BOT_TOKEN")
+    if token:
+        bot.run(token)
+    else:
+        print("エラー: DISCORD_BOT_TOKEN が設定されていません。")
