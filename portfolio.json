@@ -1,0 +1,10 @@
+[
+    {
+        "ticker": "7203.T",
+        "name": "トヨタ自動車",
+        "entry_price": 2500,
+        "entry_date": "2026-03-04",
+        "target_profit_pct": 10.0,
+        "stop_loss_pct": 3.0
+    }
+]
