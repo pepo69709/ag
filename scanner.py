@@ -37,7 +37,6 @@ def update_and_track_progress():
     file_path = "trade_tracker.csv"
     if not os.path.exists(file_path): return
     
-    # configから目標・損切設定を読み込む
     profit_target = 1 + (config.EXIT_PROFIT_TARGET / 100)
     stop_loss_line = 1 - (config.EXIT_STOP_LOSS / 100)
     
@@ -58,14 +57,12 @@ def update_and_track_progress():
             current_p = hist['Close'].iloc[-1]
             current_profit = (current_p / entry_p - 1) * 100
             
-            # 推移の記録
             new_log = f"{datetime.now(JST).strftime('%m/%d')}:{current_profit:+.1f}%"
             if pd.isna(df.at[idx, 'progress_path']):
                 df.at[idx, 'progress_path'] = new_log
             elif new_log not in str(df.at[idx, 'progress_path']):
                 df.at[idx, 'progress_path'] = str(df.at[idx, 'progress_path']) + " | " + new_log
 
-            # 指定された戦略（config）に基づいて自動判定
             if max_p >= entry_p * profit_target:
                 df.at[idx, 'label'] = 1
                 df.at[idx, 'resolved_date'] = datetime.now(JST).strftime('%Y-%m-%d')
@@ -93,7 +90,7 @@ def run_trainer_scan():
             res = calculate_metrics(full_df[ticker])
             if not res: continue
             
-            # 黄金条件 (configから動的に取得)
+            # 条件判定
             if (config.ENTRY_DEV_MIN <= res["dev"] <= config.ENTRY_DEV_MAX) and \
                (config.ENTRY_RSI_MIN <= res["rsi"] <= config.ENTRY_RSI_MAX):
                 new_entries.append({
@@ -115,11 +112,12 @@ def run_trainer_scan():
             else:
                 new_df.to_csv(file_path, mode='w', header=True, index=False, encoding="utf-8-sig")
 
-        # --- Discord通知 ---
+        # --- 🚀 確実にリッチなDiscord通知を送るセクション ---
         webhook_url = os.environ.get("DISCORD_WEBHOOK_URL") or config.DISCORD_WEBHOOK_URL
         if "http" in webhook_url:
             fields = []
-            for s in new_entries:
+            # 10件まで表示
+            for s in new_entries[:10]:
                 fields.append({
                     "name": f"💎 {s['ticker']}",
                     "value": f"価格: **{s['entry_price']:,.0f}円**\n乖離: **{s['feat_dev']:+.1f}%** / RSI: **{s['feat_rsi']:.1f}**",
@@ -127,13 +125,14 @@ def run_trainer_scan():
                 })
             
             embed = {
-                "title": "🚀 【軍師の知能強化：全自動データ収穫中】",
-                "color": 0xDAA520,
-                "description": f"解析時刻: {now_jst.strftime('%H:%M')}\n100銘柄のスキャンと、過去銘柄の『推移・勝敗』を自動で記録しました。",
-                "fields": fields if fields else [{"name": "状況", "value": "新規シグナルなし。データの蓄積を継続中。"}],
-                "footer": {"text": f"目標利益:{config.EXIT_PROFIT_TARGET}% / 損切:{config.EXIT_STOP_LOSS}% で自動判定中"}
+                "title": "🚀 【黄金のモメンタム：自動パトロール成功】",
+                "color": 0xDAA520, # Gold
+                "description": f"解析完了: {now_jst.strftime('%Y/%m/%d %H:%M')}\n100銘柄をスキャニングしました。",
+                "fields": fields if fields else [{"name": "状況", "value": "現在の設定範囲に該当する銘柄はありません。"}],
+                "footer": {"text": f"設定(乖離): {config.ENTRY_DEV_MIN}%〜{config.ENTRY_DEV_MAX}% で監視中"}
             }
             requests.post(webhook_url, json={"embeds": [embed]})
+            print("Rich notification sent to Discord.")
 
     except Exception as e:
         print(f"Error: {e}")
