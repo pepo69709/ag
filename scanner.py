@@ -37,8 +37,11 @@ def update_and_track_progress():
     file_path = "trade_tracker.csv"
     if not os.path.exists(file_path): return
     
+    # configから目標・損切設定を読み込む
+    profit_target = 1 + (config.EXIT_PROFIT_TARGET / 100)
+    stop_loss_line = 1 - (config.EXIT_STOP_LOSS / 100)
+    
     df = pd.read_csv(file_path)
-    # まだ決着がついていないものを探す
     pending_mask = df['label'].isna()
     
     for idx, row in df[pending_mask].iterrows():
@@ -50,24 +53,23 @@ def update_and_track_progress():
             hist = yf.download(ticker, start=entry_date, progress=False)
             if hist.empty: continue
             
-            # 最高値・最安値をチェック (判定用)
             max_p = hist['High'].max()
             min_p = hist['Low'].min()
             current_p = hist['Close'].iloc[-1]
             current_profit = (current_p / entry_p - 1) * 100
             
-            # --- 過程の記録 (新しい列 'progress_path' に追記) ---
+            # 推移の記録
             new_log = f"{datetime.now(JST).strftime('%m/%d')}:{current_profit:+.1f}%"
             if pd.isna(df.at[idx, 'progress_path']):
                 df.at[idx, 'progress_path'] = new_log
             elif new_log not in str(df.at[idx, 'progress_path']):
                 df.at[idx, 'progress_path'] = str(df.at[idx, 'progress_path']) + " | " + new_log
 
-            # --- 最終判定 (10% 利確 or 3% 損切) ---
-            if max_p >= entry_p * 1.10:
+            # 指定された戦略（config）に基づいて自動判定
+            if max_p >= entry_p * profit_target:
                 df.at[idx, 'label'] = 1
                 df.at[idx, 'resolved_date'] = datetime.now(JST).strftime('%Y-%m-%d')
-            elif min_p <= entry_p * 0.97:
+            elif min_p <= entry_p * stop_loss_line:
                 df.at[idx, 'label'] = 0
                 df.at[idx, 'resolved_date'] = datetime.now(JST).strftime('%Y-%m-%d')
         except: continue
@@ -79,11 +81,8 @@ def run_trainer_scan():
     unique_tickers = list(dict.fromkeys(config.WATCH_LIST))
     print(f"Trainer Scan Initialized: {now_jst}")
     
-    # 1. 過去銘柄の「推移」と「判定」を更新
-    # ※市場が15分おきに動くので、毎日12:00頃や15:00頃に代表して判定が更新されるイメージ
     update_and_track_progress()
     
-    # 2. 最新スキャンで新規候補を探す
     try:
         full_df = yf.download(" ".join(unique_tickers), period="3mo", interval="1d", group_by='ticker', progress=False)
         
@@ -94,9 +93,9 @@ def run_trainer_scan():
             res = calculate_metrics(full_df[ticker])
             if not res: continue
             
-            # 黄金条件
-            if (9.0 <= res["dev"] <= 15.0) and (35 <= res["rsi"] <= 65):
-                # 新規シグナルとして記録
+            # 黄金条件 (configから動的に取得)
+            if (config.ENTRY_DEV_MIN <= res["dev"] <= config.ENTRY_DEV_MAX) and \
+               (config.ENTRY_RSI_MIN <= res["rsi"] <= config.ENTRY_RSI_MAX):
                 new_entries.append({
                     "timestamp": now_jst.strftime('%Y-%m-%d %H:%M'),
                     "ticker": ticker,
@@ -131,8 +130,8 @@ def run_trainer_scan():
                 "title": "🚀 【軍師の知能強化：全自動データ収穫中】",
                 "color": 0xDAA520,
                 "description": f"解析時刻: {now_jst.strftime('%H:%M')}\n100銘柄のスキャンと、過去銘柄の『推移・勝敗』を自動で記録しました。",
-                "fields": fields if fields else [{"name": "状況", "value": "新たなチャンスは未発見。データの蓄積と推移の監視を継続しています。"}],
-                "footer": {"text": f"学習ファイル: trade_tracker.csv (あなたのAIを育てるための全記録)"}
+                "fields": fields if fields else [{"name": "状況", "value": "新規シグナルなし。データの蓄積を継続中。"}],
+                "footer": {"text": f"目標利益:{config.EXIT_PROFIT_TARGET}% / 損切:{config.EXIT_STOP_LOSS}% で自動判定中"}
             }
             requests.post(webhook_url, json={"embeds": [embed]})
 
