@@ -19,7 +19,7 @@ WATCH_LIST = [
 ]
 
 # 2. 攻めの設定 (エントリー条件)
-ENTRY_DEV_MIN = 5.0   # 25日乖離率がこれ以上なら注目 (少し下げてチャンスを増やしました)
+ENTRY_DEV_MIN = 0.0   # テスト用に0%まで下げました (後で必ず戻します！)
 ENTRY_DEV_MAX = 15.0  # あまりに上がりすぎは除外
 ENTRY_RSI_MIN = 35.0
 ENTRY_RSI_MAX = 65.0
