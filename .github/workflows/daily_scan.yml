@@ -26,7 +26,14 @@ jobs:
 
     - name: スキャンを実行
       env:
-        # 名前を scanner.py が探している "DISCORD_WEBHOOK_URL" に正確に合わせます
         DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         python scanner.py
+
+    - name: データをリポジトリに保存して蓄積
+      run: |
+        git config --global user.name "Stock Bot AI"
+        git config --global user.email "bot-ai@example.com"
+        git add trade_tracker.csv
+        git commit -m "📊 トレード履歴と判定結果を追跡・更新" || echo "追加するデータがありませんでした"
+        git push
