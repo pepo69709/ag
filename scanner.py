@@ -91,7 +91,10 @@ def run_trainer_scan():
         top_movers = sorted(all_stats, key=lambda x: x['dev'], reverse=True)[:5]
 
         # CSVに新規シグナルを保存 (AI用)
-        if golden_hits:
+        # 土日（休日）に実行された場合は、重複データを避けるためCSV保存をスキップする
+        is_market_day = now_jst.weekday() < 5 # 0:月〜4:金
+
+        if golden_hits and is_market_day:
             file_path = "trade_tracker.csv"
             new_entries = []
             for s in golden_hits:
@@ -113,7 +116,7 @@ def run_trainer_scan():
                 hits_text = "".join([f"**{s['ticker']}**: {s['price']:,.0f}円 (乖離:{s['dev']:+.1f}%)\n" for s in golden_hits[:5]])
                 fields.append({"name": "🔥 【黄金シグナル：即戦力候補】", "value": hits_text, "inline": False})
             
-            movers_text = "".join([f"**{s['ticker']}**: {s['price']:,.0f}円 (乖離:{s['dev']:+.1f}%)\n" for s in top_movers])
+            movers_text = "".join([f"**{s['ticker']}**: {s['price']:,.0f}円 (乖離:{s['dev']:+.1f}% / RSI:{s['rsi']:.1f})\n" for s in top_movers])
             fields.append({"name": "📊 【本日の注目TOP 5：市場の体温】", "value": movers_text, "inline": False})
 
             embed = {

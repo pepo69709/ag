@@ -34,6 +34,12 @@ jobs:
       run: |
         git config --global user.name "Stock Bot AI"
         git config --global user.email "bot-ai@example.com"
-        git add trade_tracker.csv
-        git commit -m "📊 トレード履歴と判定結果を追跡・更新" || echo "追加するデータがありませんでした"
-        git push
+        # ファイルが存在し、かつ変更がある場合のみ実行
+        if [ -f trade_tracker.csv ] && [ -n "$(git status --porcelain trade_tracker.csv)" ]; then
+          git add trade_tracker.csv
+          git commit -m "📊 トレード履歴と判定結果を追跡・更新"
+          git pull --rebase origin main
+          git push origin main
+        else
+          echo "保存するデータ(変更)がありませんでした。スキップします。"
+        fi
