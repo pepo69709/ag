@@ -2,8 +2,8 @@ name: Daily Stock Scan & Portfolio Patrol
 
 on:
   schedule:
-    # 毎日日本時間 09:00〜15:30 の間、15分おきに超速パトロール (UTC 00:00〜06:30)
-    - cron: '*/15 0-6 * * *'
+    # 日本時間 (JST) 月曜〜金曜 の 09:00 〜 15:30 ごろにパトロール
+    - cron: '*/30 0-6 * * 1-5'
   workflow_dispatch:
 
 jobs:
