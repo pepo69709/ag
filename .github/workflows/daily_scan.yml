@@ -7,6 +7,10 @@ on:
     - cron: '5,35 0-6 * * 1-5'
   workflow_dispatch:
 
+# データを保存するために「書き込み権限」を許可します
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
