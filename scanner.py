@@ -166,15 +166,13 @@ def run_trainer_scan():
                 golden_hits = sorted(golden_hits, key=lambda x: x['win_prob'], reverse=True)
                 hits_text = "".join([f"⭐ **{s['ticker']}**: {s['price']:,.0f}円 (AI確信度:**{s['win_prob']:.1f}%** 🎯)\n" for s in golden_hits[:15]])
                 fields.append({"name": f"🔥 【AI精鋭チーム認定：絶対お宝銘柄 ({len(golden_hits)}件)】", "value": hits_text, "inline": False})
-            
-            movers_text = "".join([f"**{s['ticker']}**: {s['price']:,.0f}円 (乖離:{s['dev']:+.1f}% / RSI:{s['rsi']:.1f})\n" for s in top_movers])
-            if movers_text == "": movers_text = "銘柄データなし"
-            fields.append({"name": "📊 【本日の注目TOP 5：市場の体温】", "value": movers_text, "inline": False})
+            else:
+                fields.append({"name": "🛰️ マーケット状況", "value": "現在、AIが『絶対の自信』を持って推奨できる銘柄は見つかりませんでした。無理なトレードは控えましょう。", "inline": False})
 
             embed = {
                 "title": "🛰️ 【最強AIアンサンブル：究極のパトロール】",
                 "color": 0xFFD700 if golden_hits else 0x3498DB,
-                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')}\n2つのトップAIが合意した究極の銘柄を報告します。",
+                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')}\n500銘柄を精査した結果、勝率80%超えの基準を満たした銘柄を報告します。",
                 "fields": fields,
                 "footer": {"text": f"利確/損切:{config.EXIT_PROFIT_TARGET}% / 監視銘柄数: 500"}
             }
