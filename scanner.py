@@ -171,6 +171,14 @@ def run_trainer_scan():
             } for s in golden_hits])
             log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
             print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
+            
+            # ライブ・ダッシュボードを自動更新
+            try:
+                from dashboard_generator import generate_dashboard
+                generate_dashboard()
+                print("✨ ライブ追跡ボードを更新しました。")
+            except Exception as e:
+                print(f"Dashboard Update Error: {e}")
 
         # Discord通知
         if "http" in webhook_url:
