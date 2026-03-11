@@ -158,6 +158,20 @@ def run_trainer_scan():
         print(f"📊 統計データ: {len(all_stats)}件 / 一次ヒット: {len(primary_hits)}件 / AI合格: {len(golden_hits)}件")
         top_movers = sorted(all_stats, key=lambda x: x['dev'], reverse=True)[:5]
 
+        # 履歴記録 (検証用)
+        if golden_hits:
+            file_exists = os.path.exists("trade_tracker.csv")
+            log_df = pd.DataFrame([{
+                "timestamp": now_jst.strftime('%Y-%m-%d %H:%M'),
+                "ticker": s["ticker"],
+                "entry_price": s["price"],
+                "win_prob": s["win_prob"],
+                "dev": s["dev"],
+                "rsi": s["rsi"]
+            } for s in golden_hits])
+            log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
+            print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
+
         # Discord通知
         if "http" in webhook_url:
             fields = []
