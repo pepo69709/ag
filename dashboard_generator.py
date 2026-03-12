@@ -1,175 +1,209 @@
 import pandas as pd
 import yfinance as yf
 import os
+import json
 from datetime import datetime
 
 def generate_dashboard():
     csv_file = "trade_tracker.csv"
-    if not os.path.exists(csv_file):
-        print("CSV file not found.")
-        return
+    if not os.path.exists(csv_file): return
 
-    df = pd.read_csv(csv_file)
-    if df.empty:
-        print("CSV is empty.")
-        return
-
-    # 重複を除去（直近の信号を優先）して最新の現在価格を取得
-    unique_tickers = df['ticker'].unique().tolist()
     try:
-        current_data = yf.download(unique_tickers, period="1d", interval="1m", progress=False, auto_adjust=True)
+        df = pd.read_csv(csv_file)
+        df['ticker'] = df['ticker'].str.strip().str.upper()
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.sort_values('timestamp')
+    except: return
+        
+    if df.empty: return
+
+    # 銘柄ごとの最新価格取得
+    all_tickers = sorted(df['ticker'].unique().tolist())
+    try:
+        current_data = yf.download(all_tickers, period="1d", interval="1m", progress=False, auto_adjust=True)
         prices = {}
-        for ticker in unique_tickers:
-            if len(unique_tickers) > 1:
-                prices[ticker] = current_data['Close'][ticker].iloc[-1]
-            else:
-                prices[ticker] = current_data['Close'].iloc[-1]
+        for t in all_tickers:
+            try:
+                if len(all_tickers) > 1:
+                    series = current_data['Close'][t].dropna()
+                    prices[t] = series.iloc[-1] if not series.empty else 0
+                else:
+                    prices[t] = current_data['Close'].iloc[-1]
+            except: prices[t] = 0
     except:
-        prices = {t: 0 for t in unique_tickers}
+        prices = {t: 0 for t in all_tickers}
 
-    # 日時でソート（新しい順）
-    df = df.sort_values(by="timestamp", ascending=False).head(20) # 直近20件
+    assets_data = []
+    for ticker in all_tickers:
+        t_df = df[df['ticker'] == ticker].sort_values('timestamp')
+        curr_p = prices.get(ticker, 0)
+        
+        # グラフ用データ：確信度と、「その時買っていたら今の損益はどうなっていたか」
+        history_probs = t_df['win_prob'].tolist()
+        history_pnl = []
+        for entry_p in t_df['entry_price']:
+            val = ((curr_p / entry_p) - 1) * 100 if curr_p > 0 else 0
+            history_pnl.append(round(val, 2))
+            
+        history_times = t_df['timestamp'].dt.strftime('%m/%d %H:%M').tolist()
+        
+        latest = t_df.iloc[-1]
+        total_hits = len(t_df)
+        high_prob_now = latest['win_prob'] >= 80
+        
+        # タイルの色とサイズ判定
+        if total_hits == 1:
+            color = "rgba(0, 210, 255, 0.4)" # 新規
+            size = "small"
+        elif high_prob_now:
+            color = "rgba(0, 255, 136, 0.6)" # 安定
+            size = "large"
+        else:
+            color = "rgba(255, 46, 99, 0.6)" # 警告
+            size = "large"
 
-    # HTML 生成
+        assets_data.append({
+            "ticker": ticker.split('.')[0],
+            "full_ticker": ticker,
+            "size": size,
+            "color": color,
+            "prob": latest['win_prob'],
+            "latest_pnl": history_pnl[-1],
+            "curr_price": curr_p,
+            "history_probs": history_probs,
+            "history_pnl": history_pnl,
+            "history_times": history_times,
+            "last_seen": latest['timestamp'].strftime('%m/%d %H:%M')
+        })
+
+    assets_data = sorted(assets_data, key=lambda x: (x['size'] == "large", x['prob']), reverse=True)
+
+    # JSON データを埋め込む
+    json_assets = json.dumps(assets_data)
+
     html_content = f"""
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI AI PATROL COMMAND CENTER</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <title>AI SYNERGY COMMAND v7</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
     <style>
         :root {{
-            --bg-color: #0b0e14;
-            --card-bg: rgba(23, 28, 38, 0.9);
-            --accent-gold: #ffcf4d;
-            --accent-blue: #00d2ff;
-            --text-main: #e0e6ed;
-            --text-dim: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
+            --bg: #03050a;
+            --stable: #00ff88;
+            --rising: #00d2ff;
+            --danger: #ff2e63;
         }}
+        body {{ background: var(--bg); color: white; font-family: 'Outfit', sans-serif; padding: 40px; margin:0; }}
+        .matrix {{ display: flex; flex-wrap: wrap; gap: 20px; }}
+        .tile {{ border-radius: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }}
+        .tile:hover {{ transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px rgba(255,255,255,0.1); }}
+        .small {{ width: 140px; height: 140px; }}
+        .large {{ width: 300px; height: 300px; }}
+        .ticker-txt {{ font-family: 'Dela Gothic One', cursive; pointer-events: none; }}
+        .small .ticker-txt {{ font-size: 28px; }}
+        .large .ticker-txt {{ font-size: 80px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }}
 
-        body {{
-            background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(0, 210, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(255, 207, 77, 0.05) 0%, transparent 50%);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-        }}
-
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-        header {{
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 30px;
-        }}
-        .logo {{ font-size: 24px; font-weight: 700; background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-        
-        .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }}
-        
-        .card {{
-            background: var(--card-bg); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; padding: 24px;
-            position: relative; transition: all 0.3s ease;
-        }}
-        .card:hover {{ transform: translateY(-5px); border-color: var(--accent-gold); }}
-        
-        .ticker-name {{ font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }}
-        .timestamp {{ font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }}
-        
-        .status-box {{
-            background: rgba(255, 255, 255, 0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px;
-        }}
-        .status-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }}
-        .label {{ font-size: 12px; color: var(--text-dim); text-transform: uppercase; }}
-        .price-val {{ font-size: 18px; font-weight: 700; }}
-        
-        .profit-badge {{
-            padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 20px;
-        }}
-        .profit-up {{ background: rgba(16, 185, 129, 0.15); color: var(--success); }}
-        .profit-down {{ background: rgba(239, 68, 68, 0.15); color: var(--danger); }}
-        
-        .progress-container {{ width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden; margin-top: 10px; }}
-        .progress-bar {{ height: 100%; transition: width 0.5s ease; }}
-        
-        .confidence-chip {{
-            display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 15px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); color: #000;
-        }}
+        #overlay {{ position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); }}
+        #modal {{ background: #0f172a; width: 95%; max-width: 1000px; padding: 50px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); position: relative; }}
+        .close {{ position: absolute; top: 30px; right: 40px; cursor: pointer; font-size: 40px; opacity: 0.5; }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">AI STRATEGY COMMAND CENTER</div>
-            <div style="text-align: right">
-                <div style="font-size: 12px; color: var(--text-dim)">LAST UPDATE</div>
-                <div style="font-size: 18px; font-weight: 700">{datetime.now().strftime('%H:%M:%S')}</div>
-            </div>
-        </header>
+    <header style="margin-bottom: 40px;">
+        <h1 style="font-weight: 900; color: var(--stable); margin:0; font-size: 48px;">AI SYNERGY COMMAND v7</h1>
+        <p style="opacity: 0.5; font-size: 16px;">金の折れ線グラフ：その判定時にエントリーした場合の現在の通算損益(%)</p>
+    </header>
+    <div class="matrix"></div>
+    <div id="overlay" onclick="closeM()">
+        <div id="modal" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeM()">&times;</span>
+            <div id="content"></div>
+        </div>
+    </div>
 
-        <div class="grid">
-"""
+    <script>
+        const assets = {json_assets};
+        function draw() {{
+            const grid = document.querySelector('.matrix');
+            assets.forEach(a => {{
+                const d = document.createElement('div');
+                d.className = `tile ${{a.size}}`;
+                d.style.backgroundColor = a.color;
+                d.innerHTML = `<span class="ticker-txt">${{a.ticker}}</span>`;
+                d.onclick = () => openM(a);
+                grid.appendChild(d);
+            }});
+        }}
 
-    for _, row in df.iterrows():
-        ticker = row['ticker']
-        entry_p = row['entry_price']
-        curr_p = prices.get(ticker, 0)
-        
-        if curr_p > 0:
-            profit_pct = (curr_p / entry_p - 1) * 100
-            # 3%をゴールとした進捗率
-            progress = min(100, max(0, (profit_pct / 3.0) * 100))
-        else:
-            profit_pct = 0
-            progress = 0
-            
-        profit_class = "profit-up" if profit_pct >= 0 else "profit-down"
-        bar_color = "var(--success)" if profit_pct >= 0 else "var(--danger)"
-        
-        html_content += f"""
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: {row['win_prob']:.1f}%</div>
-                <div class="ticker-name">{ticker}</div>
-                <div class="timestamp">推奨時刻: {row['timestamp']}</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">{entry_p:,.0f} 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge {profit_class}">{profit_pct:+.2f}%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: {progress}%; background: {bar_color};"></div>
+        let chart;
+        function openM(a) {{
+            const pColor = a.latest_pnl >= 0 ? 'var(--stable)' : 'var(--danger)';
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('content').innerHTML = `
+                <div style="font-size: 14px; opacity: 0.5; letter-spacing: 2px;">RELATIONAL ANALYSIS: ${{a.full_ticker}}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <h2 style="font-size: 110px; font-family: 'Dela Gothic One'; margin: 0;">${{a.ticker}}</h2>
+                    <div style="text-align: right;">
+                        <div style="color: ${{pColor}}; font-size: 70px; font-weight: 900; line-height: 1;">${{a.latest_pnl >= 0 ? '+' : ''}}${{a.latest_pnl}}%</div>
+                        <div style="font-size: 16px; opacity: 0.6; margin-top: 10px;">LATEST ENTRY P/L</div>
                     </div>
                 </div>
-            </div>
-"""
+                <div style="margin-top: 30px; background: rgba(0,0,0,0.3); border-radius: 40px; padding: 30px;">
+                    <canvas id="chart"></canvas>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 13px; font-weight: 700;">
+                    <span style="color: #00d2ff;">● AI CONFIDENCE (%)</span>
+                    <span style="color: #ffd700;">● POTENTIAL P/L (%) IF BOUGHT AT TIME</span>
+                    <span style="opacity: 0.4;">LAST SYNC: ${{a.last_seen}}</span>
+                </div>
+            `;
 
-    html_content += """
-        </div>
-        <footer style="margin-top: 50px; text-align: center; color: var(--text-dim); font-size: 12px;">
-            ※ 現在価格は yfinance 経由で取得しています。実際の約定価格とは異なる場合があります。<br>
-            &copy; 2026 AI Trading System Engine
-        </footer>
-    </div>
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {{
+                type: 'line',
+                data: {{
+                    labels: a.history_times,
+                    datasets: [
+                        {{
+                            label: 'AI 確信度 (%)',
+                            data: a.history_probs,
+                            borderColor: '#00d2ff',
+                            borderWidth: 5, yAxisID: 'y_prob', tension: 0.4, pointRadius: 6, fill: true,
+                            backgroundColor: 'rgba(0, 210, 255, 0.05)'
+                        }},
+                        {{
+                            label: '損益推移 (%)',
+                            data: a.history_pnl,
+                            borderColor: '#ffd700',
+                            borderDash: [5, 5],
+                            borderWidth: 3, yAxisID: 'y_pnl', tension: 0.2, pointRadius: 10, pointStyle: 'rectRot'
+                        }}
+                    ]
+                }},
+                options: {{
+                    responsive: true,
+                    scales: {{
+                        y_prob: {{ position: 'left', min: 0, max: 105, grid: {{ color: 'rgba(255,255,255,0.05)' }}, title: {{ display: true, text: '確信度 (%)' }} }},
+                        y_pnl: {{ position: 'right', grid: {{ drawOnChartArea: false }}, title: {{ display: true, text: '現在損益 (%)' }} }}
+                    }},
+                    plugins: {{ legend: {{ display: false }} }}
+                }}
+            }});
+        }}
+        function closeM() {{ document.getElementById('overlay').style.display = 'none'; }}
+        draw();
+        setTimeout(() => location.reload(), 60000);
+    </script>
 </body>
 </html>
 """
 
     with open("dashboard.html", "w", encoding="utf-8") as f:
         f.write(html_content)
-    print("✨ Dashboard updated with Live Performance tracking.")
 
 if __name__ == "__main__":
     generate_dashboard()

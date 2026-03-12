@@ -167,7 +167,8 @@ def run_trainer_scan():
                 "entry_price": s["price"],
                 "win_prob": s["win_prob"],
                 "dev": s["dev"],
-                "rsi": s["rsi"]
+                "rsi": s["rsi"],
+                "label": None  # 👈 未来の「答え合わせ」のために空けておく
             } for s in golden_hits])
             log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
             print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
