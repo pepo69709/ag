@@ -1,50 +1,40 @@
-name: Daily Stock Scan & Portfolio Patrol
+name: AI Stock Patrol
 
 on:
   schedule:
-    # 日本時間 (JST) 月曜〜金曜 の 09:05 〜 15:35 ごろにパトロール
-    # 混雑回避のため、キリのいい時間から5分ずらしています
-    - cron: '5,35 0-6 * * 1-5'
-  workflow_dispatch:
-
-# データを保存するために「書き込み権限」を許可します
-permissions:
-  contents: write
+    # 毎日 平日の日本時間 10:00, 11:30, 13:00, 15:30 頃に実行 (UTC表記)
+    - cron: '0 1,2,4,6 * * 1-5'
+  workflow_dispatch: # 手動実行ボタンも残す
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 👈 これが超重要！記録を保存するための権限です。
 
     steps:
-    - name: コードをチェックアウト
-      uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Pythonをセットアップ
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: ライブラリをインストール
-      run: |
-        python -m pip install --upgrade pip
-        pip install yfinance pandas requests joblib scikit-learn xgboost lightgbm
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install yfinance pandas joblib requests xgboost lightgbm scikit-learn
 
-    - name: スキャンを実行
-      env:
-        DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      run: |
-        python scanner.py
+      - name: Run AI Scanner
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python scanner.py
 
-    - name: データをリポジトリに保存して蓄積
-      run: |
-        git config --global user.name "Stock Bot AI"
-        git config --global user.email "bot-ai@example.com"
-        # ファイルが存在し、かつ変更がある場合のみ実行
-        if [ -f trade_tracker.csv ] && [ -n "$(git status --porcelain trade_tracker.csv)" ]; then
-          git add trade_tracker.csv
-          git commit -m "📊 トレード履歴と判定結果を追跡・更新"
-          git pull --rebase origin main
-          git push origin main
-        else
-          echo "保存するデータ(変更)がありませんでした。スキップします。"
-        fi
+      - name: Save Records
+        run: |
+          git config --global user.name "AI Patrol Bot"
+          git config --global user.email "bot@example.com"
+          git add trade_tracker.csv dashboard.html
+          git commit -m "📊 Automatic update: AI Patrol Results $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+          git push origin main || echo "Push failed, but continuing..."
