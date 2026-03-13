@@ -134,23 +134,20 @@ def run_trainer_scan():
                     prob_xgb = xgb_model.predict_proba(features_df)[0][1]
                     prob_lgbm = lgbm_model.predict_proba(features_df)[0][1]
                     
-                    # アンサンブル確率 (平均をベースに、両方が高ければ増幅)
+                    # アンサンブル確率 (平均をベースに)
                     avg_prob = (prob_xgb + prob_lgbm) / 2
                     
-                    # 人間が期待する「90%」へとスケーリング (0.65ベースラインを90%付近に変換)
-                    # 0.55で70%, 0.65で90%, 0.70で95% くらいの感覚に調整
-                    if avg_prob > 0.5:
-                        display_prob = 50 + (avg_prob - 0.5) * 200 
-                    else:
-                        display_prob = avg_prob * 100
+                    # 嘘の水増しを廃止し、生の確率を表示
+                    s["win_prob"] = avg_prob * 100
                     
-                    s["win_prob"] = min(99.9, display_prob)
-                    
-                    if avg_prob >= 0.60: # 合議による厳しい合格ライン
-                        print(f"💎 【超鉄板認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
+                    if avg_prob >= 0.75: # 合格ラインを大幅引き上げ（スパルタ判定）
+                        print(f"💎 【本物の超鉄板認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
                         golden_hits.append(s)
                     else:
-                        print(f"❌ 却下 ({s['win_prob']:.1f}%): {s['ticker']}")
+                        if avg_prob >= 0.60:
+                             print(f"⚠️ 惜しいが却下 (予備候補: {s['win_prob']:.1f}%): {s['ticker']}")
+                        else:
+                             print(f"❌ 却下 ({s['win_prob']:.1f}%): {s['ticker']}")
             except Exception as e:
                 print(f"AI Ensemble Error: {e}")
                 golden_hits = primary_hits
