@@ -65,8 +65,8 @@ ENTRY_RSI_MIN = 30.0
 ENTRY_RSI_MAX = 85.0  # 強い勢いも一旦許可し、AIに選別させる
 
 # 3. 守りの設定 (エグジット条件)
-EXIT_PROFIT_TARGET = 3.0   # 利確目標を 10% -> 3% に下げて「確実性」を優先
-EXIT_STOP_LOSS = 3.0       # 損切ライン
+EXIT_PROFIT_TARGET = 1.0   # +1.0% での着実な利確を狙う
+EXIT_STOP_LOSS = 2.0       # 損切ラインを 2.0% に設定し、早期撤退を徹底
 
 # 4. 外部連携
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
