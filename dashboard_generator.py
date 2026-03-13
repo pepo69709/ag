@@ -202,7 +202,7 @@ def generate_dashboard():
 </html>
 """
 
-    with open("dashboard.html", "w", encoding="utf-8") as f:
+    with open("index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
 if __name__ == "__main__":

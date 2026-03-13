@@ -35,6 +35,6 @@ jobs:
         run: |
           git config --global user.name "AI Patrol Bot"
           git config --global user.email "bot@example.com"
-          git add trade_tracker.csv dashboard.html
+          git add trade_tracker.csv index.html
           git commit -m "📊 Automatic update: AI Patrol Results $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
           git push origin main || echo "Push failed, but continuing..."
