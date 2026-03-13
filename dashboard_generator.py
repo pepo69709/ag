@@ -51,17 +51,14 @@ def generate_dashboard(last_sync_time=None):
         
         latest = t_df.iloc[-1]
         total_hits = len(t_df)
-        high_prob_now = latest['win_prob'] >= 80
+        # タイルの色とサイズ判定 (最新のエリートAI基準: 85%以上が緑)
+        is_elite = latest['win_prob'] >= 85
         
-        # タイルの色とサイズ判定
-        if total_hits == 1:
-            color = "rgba(0, 210, 255, 0.4)" # 新規
-            size = "small"
-        elif high_prob_now:
-            color = "rgba(0, 255, 136, 0.6)" # 安定
+        if is_elite:
+            color = "rgba(0, 255, 136, 0.6)" # 安定・合格 (Green)
             size = "large"
         else:
-            color = "rgba(255, 46, 99, 0.6)" # 警告
+            color = "rgba(255, 46, 99, 0.6)" # 警告・不利益 (Red)
             size = "large"
 
         assets_data.append({
