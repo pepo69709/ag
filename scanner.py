@@ -51,6 +51,16 @@ def calculate_metrics(df):
         
         prev_close = close.shift(1)
         gap_pct = (open_p / prev_close.replace(0, 1e-6) - 1) * 100
+
+        # 一目均衡表（簡略版）
+        tenkan = (close.rolling(window=9).max() + close.rolling(window=9).min()) / 2
+        kijun = (close.rolling(window=26).max() + close.rolling(window=26).min()) / 2
+        feat_ichimoku = (close / kijun.replace(0, 1e-6) - 1) * 100
+        
+        # 出来高の勢い (Volume Trend)
+        vol_ema5 = volume.ewm(span=5).mean()
+        vol_ema20 = volume.ewm(span=20).mean()
+        feat_vol_trend = (vol_ema5 / vol_ema20.replace(0, 1e-6) - 1) * 100
         
         return {
             "price": float(close.iloc[-1]),
@@ -61,7 +71,9 @@ def calculate_metrics(df):
             "trend": float(trend_sma.iloc[-1]),
             "macd": float(macd_hist.iloc[-1]),
             "bb_pos": float(bb_position.iloc[-1]),
-            "gap": float(gap_pct.iloc[-1])
+            "gap": float(gap_pct.iloc[-1]),
+            "ichimoku": float(feat_ichimoku.iloc[-1]),
+            "vol_trend": float(feat_vol_trend.iloc[-1])
         }
     except Exception as e:
         print(f"Metrics Error: {e}")
@@ -109,7 +121,8 @@ def run_trainer_scan():
                 if res:
                     all_stats.append({
                         "ticker": ticker, "price": res["price"], "dev": res["dev"], "rsi": res["rsi"], "vol": res["vol_ratio"],
-                        "volatility": res["volatility"], "trend": res["trend"], "macd": res["macd"], "bb_pos": res["bb_pos"], "gap": res["gap"]
+                        "volatility": res["volatility"], "trend": res["trend"], "macd": res["macd"], "bb_pos": res["bb_pos"], "gap": res["gap"],
+                        "ichimoku": res["ichimoku"], "vol_trend": res["vol_trend"]
                     })
             print(f"✅ チャンク処理完了 ({min(i+chunk_size, len(unique_tickers))}/{len(unique_tickers)})")
 
@@ -129,8 +142,6 @@ def run_trainer_scan():
                         'feat_macd': s["macd"], 'feat_bb_pos': s["bb_pos"], 'feat_gap': s["gap"],
                         'feat_nikkei_trend': n_trend, 'feat_fear_index': n_vol, 'feat_market_phase': n_phase
                     }])
-                    
-                    # 複数モデルの平均をとる
                     prob_xgb = xgb_model.predict_proba(features_df)[0][1]
                     prob_lgbm = lgbm_model.predict_proba(features_df)[0][1]
                     
@@ -141,8 +152,6 @@ def run_trainer_scan():
                     s["win_prob"] = avg_prob * 100
                     
                     # 🔥 地獄のスパルタ・ダブルゲート・フィルター
-                    # 1. 平均が 85% 以上であること
-                    # 2. 2つのAIが両方とも 80% 以上の確信を持っていること
                     if avg_prob >= 0.85 and prob_xgb >= 0.80 and prob_lgbm >= 0.80:
                         print(f"🔥 【真・黄金シグナル認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
                         golden_hits.append(s)
@@ -168,7 +177,9 @@ def run_trainer_scan():
                 "win_prob": s["win_prob"],
                 "dev": s["dev"],
                 "rsi": s["rsi"],
-                "label": None  # 👈 未来の「答え合わせ」のために空けておく
+                "ichimoku": s["ichimoku"],
+                "vol_trend": s["vol_trend"],
+                "label": None
             } for s in golden_hits])
             log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
             print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
@@ -193,11 +204,11 @@ def run_trainer_scan():
                 fields.append({"name": "🛰️ マーケット状況", "value": "現在、AIが『絶対の自信』を持って推奨できる銘柄は見つかりませんでした。無理なトレードは控えましょう。", "inline": False})
 
             embed = {
-                "title": "🛰️ 【最強AIアンサンブル：究極のパトロール】",
-                "color": 0xFFD700 if golden_hits else 0x3498DB,
-                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')}\n500銘柄を精査した結果、勝率80%超えの基準を満たした銘柄を報告します。",
+                "title": "🛡️ 【AI 資産防衛：1.0% 着実パトロール】",
+                "color": 0x00FF88 if golden_hits else 0x3498DB,
+                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')}\n500銘柄を調査。水増しなしの生スコア 85% 超えの『真実のダイヤ』を捜索中。",
                 "fields": fields,
-                "footer": {"text": f"利確/損切:{config.EXIT_PROFIT_TARGET}% / 監視銘柄数: 500"}
+                "footer": {"text": f"目標利益: {config.EXIT_PROFIT_TARGET}% / 損切: {config.EXIT_STOP_LOSS}% / 監視銘柄数: 500"}
             }
             requests.post(webhook_url, json={"embeds": [embed]})
 
