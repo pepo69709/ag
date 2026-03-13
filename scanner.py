@@ -71,9 +71,7 @@ def calculate_metrics(df):
             "trend": float(trend_sma.iloc[-1]),
             "macd": float(macd_hist.iloc[-1]),
             "bb_pos": float(bb_position.iloc[-1]),
-            "gap": float(gap_pct.iloc[-1]),
-            "ichimoku": float(feat_ichimoku.iloc[-1]),
-            "vol_trend": float(feat_vol_trend.iloc[-1])
+            "gap": float(gap_pct.iloc[-1])
         }
     except Exception as e:
         print(f"Metrics Error: {e}")
@@ -84,11 +82,11 @@ def run_trainer_scan():
     unique_tickers = list(dict.fromkeys(config.WATCH_LIST))
     webhook_url = os.environ.get("DISCORD_WEBHOOK_URL") or config.DISCORD_WEBHOOK_URL
     
-    print(f"Scan Initialized: {now_jst}")
+    print(f"🚀 【1.0% エリート・スキャナー】起動: {now_jst}")
     
     try:
         # --- 🤖 AI用マクロ指標の取得 (日経平均) ---
-        print("🌍 日経平均のマクロ状況を確認中...")
+        print("🌍 市場マクロ（日経平均）の状態を分析中...")
         n_trend, n_vol, n_phase = 0.0, 20.0, 1.0
         try:
             nikkei = yf.download("^N225", period="3mo", progress=False, auto_adjust=True)
@@ -106,6 +104,7 @@ def run_trainer_scan():
                 elif n_trend < -3.0: n_phase = 0
                 else: n_phase = 1
         except Exception as e:
+            print(nikkei.columns) # Debug
             print(f"Nikkei Macro Error: {e}")
 
         # データ取得
@@ -121,17 +120,16 @@ def run_trainer_scan():
                 if res:
                     all_stats.append({
                         "ticker": ticker, "price": res["price"], "dev": res["dev"], "rsi": res["rsi"], "vol": res["vol_ratio"],
-                        "volatility": res["volatility"], "trend": res["trend"], "macd": res["macd"], "bb_pos": res["bb_pos"], "gap": res["gap"],
-                        "ichimoku": res["ichimoku"], "vol_trend": res["vol_trend"]
+                        "volatility": res["volatility"], "trend": res["trend"], "macd": res["macd"], "bb_pos": res["bb_pos"], "gap": res["gap"]
                     })
-            print(f"✅ チャンク処理完了 ({min(i+chunk_size, len(unique_tickers))}/{len(unique_tickers)})")
+            print(f"✅ パトロール中... ({min(i+chunk_size, len(unique_tickers))}/{len(unique_tickers)})")
 
         primary_hits = [s for s in all_stats if (config.ENTRY_DEV_MIN <= s["dev"] <= config.ENTRY_DEV_MAX) and (config.ENTRY_RSI_MIN <= s["rsi"] <= config.ENTRY_RSI_MAX)]
         
         golden_hits = []
         if primary_hits and os.path.exists("xgb_model.pkl") and os.path.exists("lgbm_model.pkl"):
             try:
-                print("🧠 AIの精鋭チーム（XGBoost & LightGBM）が合議判定中...")
+                print("🧠 最強の合議制 AI (XGB/LGBM) が選別を開始します...")
                 xgb_model = joblib.load("xgb_model.pkl")
                 lgbm_model = joblib.load("lgbm_model.pkl")
                 
@@ -147,19 +145,14 @@ def run_trainer_scan():
                     
                     # アンサンブル確率 (平均)
                     avg_prob = (prob_xgb + prob_lgbm) / 2
-                    
-                    # 生の確率をセット
                     s["win_prob"] = avg_prob * 100
                     
-                    # 🔥 地獄のスパルタ・ダブルゲート・フィルター
-                    if avg_prob >= 0.85 and prob_xgb >= 0.80 and prob_lgbm >= 0.80:
-                        print(f"🔥 【真・黄金シグナル認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
+                    # 🔥 85% 以上の確信度のみを認定
+                    if avg_prob >= 0.85:
+                        print(f"🔥 【真実のダイヤ認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
                         golden_hits.append(s)
                     else:
-                        if avg_prob >= 0.70:
-                             print(f"⚠️ 却下 (詰めが甘い: {s['win_prob']:.1f}%): {s['ticker']}")
-                        else:
-                             print(f"❌ 却下 ({s['win_prob']:.1f}%): {s['ticker']}")
+                        print(f"❌ 却下 ({s['win_prob']:.1f}%): {s['ticker']}")
             except Exception as e:
                 print(f"AI Ensemble Error: {e}")
                 golden_hits = primary_hits

@@ -4,7 +4,7 @@ import os
 # 💎 投資戦略・司令塔 (config.py)
 # ==========================================
 
-# 1. 銘柄パトロール設定
+# 1. 銘柄パトロール設定 (主要な実績ある500銘柄に絞り込み)
 WATCH_LIST = [
     '1332.T', '1333.T', '1379.T', '1605.T', '1662.T', '1663.T', '1719.T', '1721.T', '1801.T', '1802.T',
     '1803.T', '1808.T', '1812.T', '1820.T', '1860.T', '1878.T', '1893.T', '1911.T', '1925.T', '1928.T',
@@ -59,14 +59,14 @@ WATCH_LIST = [
 ]
 
 # 2. 攻めの設定 (エントリー条件)
-ENTRY_DEV_MIN = 5.0   # 一時的に 5% に緩和（AIの出番を増やすため）
-ENTRY_DEV_MAX = 20.0  # 上限も 20% まで拡大
-ENTRY_RSI_MIN = 30.0
-ENTRY_RSI_MAX = 85.0  # 強い勢いも一旦許可し、AIに選別させる
+ENTRY_DEV_MIN = 3.0   # 1.0%ターゲット用の最適ゾーン
+ENTRY_DEV_MAX = 30.0
+ENTRY_RSI_MIN = 20.0
+ENTRY_RSI_MAX = 85.0
 
 # 3. 守りの設定 (エグジット条件)
-EXIT_PROFIT_TARGET = 1.0   # +1.0% での着実な利確を狙う
-EXIT_STOP_LOSS = 2.0       # 損切ラインを 2.0% に設定し、早期撤退を徹底
+EXIT_PROFIT_TARGET = 1.0
+EXIT_STOP_LOSS = 2.0
 
 # 4. 外部連携
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
