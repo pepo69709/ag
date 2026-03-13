@@ -134,18 +134,21 @@ def run_trainer_scan():
                     prob_xgb = xgb_model.predict_proba(features_df)[0][1]
                     prob_lgbm = lgbm_model.predict_proba(features_df)[0][1]
                     
-                    # アンサンブル確率 (平均をベースに)
+                    # アンサンブル確率 (平均)
                     avg_prob = (prob_xgb + prob_lgbm) / 2
                     
-                    # 嘘の水増しを廃止し、生の確率を表示
+                    # 生の確率をセット
                     s["win_prob"] = avg_prob * 100
                     
-                    if avg_prob >= 0.75: # 合格ラインを大幅引き上げ（スパルタ判定）
-                        print(f"💎 【本物の超鉄板認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
+                    # 🔥 地獄のスパルタ・ダブルゲート・フィルター
+                    # 1. 平均が 85% 以上であること
+                    # 2. 2つのAIが両方とも 80% 以上の確信を持っていること
+                    if avg_prob >= 0.85 and prob_xgb >= 0.80 and prob_lgbm >= 0.80:
+                        print(f"🔥 【真・黄金シグナル認定】 ({s['win_prob']:.1f}%): {s['ticker']}")
                         golden_hits.append(s)
                     else:
-                        if avg_prob >= 0.60:
-                             print(f"⚠️ 惜しいが却下 (予備候補: {s['win_prob']:.1f}%): {s['ticker']}")
+                        if avg_prob >= 0.70:
+                             print(f"⚠️ 却下 (詰めが甘い: {s['win_prob']:.1f}%): {s['ticker']}")
                         else:
                              print(f"❌ 却下 ({s['win_prob']:.1f}%): {s['ticker']}")
             except Exception as e:
