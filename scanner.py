@@ -170,20 +170,20 @@ def run_trainer_scan():
                 "win_prob": s["win_prob"],
                 "dev": s["dev"],
                 "rsi": s["rsi"],
-                "ichimoku": s["ichimoku"],
-                "vol_trend": s["vol_trend"],
+                "ichimoku": 0.0,
+                "vol_trend": 0.0,
                 "label": None
             } for s in golden_hits])
             log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
             print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
             
-            # ライブ・ダッシュボードを自動更新
-            try:
-                from dashboard_generator import generate_dashboard
-                generate_dashboard()
-                print("✨ ライブ追跡ボードを更新しました。")
-            except Exception as e:
-                print(f"Dashboard Update Error: {e}")
+        # ライブ・ダッシュボードを自動更新 (ヒットがなくても生存確認のために更新)
+        try:
+            from dashboard_generator import generate_dashboard
+            generate_dashboard(last_sync_time=now_jst.strftime('%m/%d %H:%M'))
+            print(f"✨ ライブ追跡ボードを更新しました (最終確認: {now_jst.strftime('%H:%M')})")
+        except Exception as e:
+            print(f"Dashboard Update Error: {e}")
 
         # Discord通知
         if "http" in webhook_url:

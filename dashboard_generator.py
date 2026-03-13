@@ -4,7 +4,9 @@ import os
 import json
 from datetime import datetime
 
-def generate_dashboard():
+def generate_dashboard(last_sync_time=None):
+    if last_sync_time is None:
+        last_sync_time = datetime.now().strftime('%m/%d %H:%M')
     csv_file = "trade_tracker.csv"
     if not os.path.exists(csv_file): return
 
@@ -112,9 +114,16 @@ def generate_dashboard():
     </style>
 </head>
 <body>
-    <header style="margin-bottom: 40px;">
-        <h1 style="font-weight: 900; color: var(--stable); margin:0; font-size: 48px;">AI SYNERGY COMMAND v7</h1>
-        <p style="opacity: 0.5; font-size: 16px;">金の折れ線グラフ：その判定時にエントリーした場合の現在の通算損益(%)</p>
+    <header style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 style="font-weight: 900; color: var(--stable); margin:0; font-size: 48px;">AI SYNERGY COMMAND v7</h1>
+            <p style="opacity: 0.5; font-size: 16px; margin: 5px 0 0 0;">金の折れ線グラフ：その判定時にエントリーした場合の現在の通算損益(%)</p>
+        </div>
+        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
+            <div style="font-size: 12px; opacity: 0.4; letter-spacing: 1px;">SYSTEM STATUS</div>
+            <div style="color: var(--stable); font-size: 20px; font-weight: 900;">ACTIVE / LIVE</div>
+            <div style="font-size: 14px; opacity: 0.6;">LAST CHECK: {last_sync_time}</div>
+        </div>
     </header>
     <div class="matrix"></div>
     <div id="overlay" onclick="closeM()">
