@@ -3,511 +3,117 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI AI PATROL COMMAND CENTER</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <title>AI SYNERGY COMMAND v7</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0b0e14;
-            --card-bg: rgba(23, 28, 38, 0.9);
-            --accent-gold: #ffcf4d;
-            --accent-blue: #00d2ff;
-            --text-main: #e0e6ed;
-            --text-dim: #94a3b8;
-            --success: #10b981;
-            --danger: #ef4444;
+            --bg: #03050a;
+            --stable: #00ff88;
+            --rising: #00d2ff;
+            --danger: #ff2e63;
         }
+        body { background: var(--bg); color: white; font-family: 'Outfit', sans-serif; padding: 40px; margin:0; }
+        .matrix { display: flex; flex-wrap: wrap; gap: 20px; }
+        .tile { border-radius: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
+        .tile:hover { transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px rgba(255,255,255,0.1); }
+        .small { width: 140px; height: 140px; }
+        .large { width: 300px; height: 300px; }
+        .ticker-txt { font-family: 'Dela Gothic One', cursive; pointer-events: none; }
+        .small .ticker-txt { font-size: 28px; }
+        .large .ticker-txt { font-size: 80px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }
 
-        body {
-            background-color: var(--bg-color);
-            background-image: 
-                radial-gradient(circle at 50% 0%, rgba(0, 210, 255, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(255, 207, 77, 0.05) 0%, transparent 50%);
-            color: var(--text-main);
-            font-family: 'Outfit', sans-serif;
-            margin: 0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-
-        .container { max-width: 1200px; margin: 0 auto; }
-        header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 20px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); margin-bottom: 30px;
-        }
-        .logo { font-size: 24px; font-weight: 700; background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
-        
-        .card {
-            background: var(--card-bg); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; padding: 24px;
-            position: relative; transition: all 0.3s ease;
-        }
-        .card:hover { transform: translateY(-5px); border-color: var(--accent-gold); }
-        
-        .ticker-name { font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-bottom: 5px; }
-        .timestamp { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
-        
-        .status-box {
-            background: rgba(255, 255, 255, 0.03); border-radius: 16px; padding: 15px; margin-bottom: 20px;
-        }
-        .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; }
-        .price-val { font-size: 18px; font-weight: 700; }
-        
-        .profit-badge {
-            padding: 4px 12px; border-radius: 8px; font-weight: 700; font-size: 20px;
-        }
-        .profit-up { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .profit-down { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
-        
-        .progress-container { width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden; margin-top: 10px; }
-        .progress-bar { height: 100%; transition: width 0.5s ease; }
-        
-        .confidence-chip {
-            display: inline-block; padding: 2px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 15px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-gold)); color: #000;
-        }
+        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); }
+        #modal { background: #0f172a; width: 95%; max-width: 1000px; padding: 50px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); position: relative; }
+        .close { position: absolute; top: 30px; right: 40px; cursor: pointer; font-size: 40px; opacity: 0.5; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">AI STRATEGY COMMAND CENTER</div>
-            <div style="text-align: right">
-                <div style="font-size: 12px; color: var(--text-dim)">LAST UPDATE</div>
-                <div style="font-size: 18px; font-weight: 700">07:00:58</div>
-            </div>
-        </header>
-
-        <div class="grid">
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">4578.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">11,020 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.59%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">5801.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">28,930 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.41%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 13.826477704804349%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">5803.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">25,700 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.58%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 71.0%</div>
-                <div class="ticker-name">5844.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">4,352 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.14%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 88.8%</div>
-                <div class="ticker-name">6460.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">2,679 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.63%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 79.7%</div>
-                <div class="ticker-name">6752.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">2,612 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.15%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 5.104645227156368%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 73.3%</div>
-                <div class="ticker-name">6754.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">2,870 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.19%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 6.386808337688343%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">6920.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">36,350 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.08%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 76.3%</div>
-                <div class="ticker-name">6963.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">3,331 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.24%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 8.005603922745703%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">6965.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">2,000 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.02%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 76.6%</div>
-                <div class="ticker-name">7453.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">3,684 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.33%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 10.857763300760048%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">7974.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">10,150 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.79%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">9101.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">5,739 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.30%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 87.6%</div>
-                <div class="ticker-name">9104.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">6,174 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.31%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 76.5%</div>
-                <div class="ticker-name">9107.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">2,670 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.54%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 72.2%</div>
-                <div class="ticker-name">9513.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">3,919 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.43%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 14.459470953474737%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 71.9%</div>
-                <div class="ticker-name">9697.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">3,457 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.26%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">5802.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">10,365 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-up">+0.43%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 14.471780028943263%; background: var(--success);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 99.9%</div>
-                <div class="ticker-name">9766.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">20,425 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.05%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="confidence-chip">AI CONFIDENCE: 92.1%</div>
-                <div class="ticker-name">4063.T</div>
-                <div class="timestamp">推奨時刻: 2026-03-12 16:00</div>
-
-                <div class="status-box">
-                    <div class="status-row">
-                        <span class="label">推奨時価格</span>
-                        <span class="price-val">6,401 円</span>
-                    </div>
-                    <div class="status-row" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 10px;">
-                        <span class="label">現在損益 (％)</span>
-                        <span class="profit-badge profit-down">-0.36%</span>
-                    </div>
-                    <div class="label" style="margin-top: 15px;">3% 利確ターゲットへの進捗</div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: 0%; background: var(--danger);"></div>
-                    </div>
-                </div>
-            </div>
-
+    <header style="margin-bottom: 40px;">
+        <h1 style="font-weight: 900; color: var(--stable); margin:0; font-size: 48px;">AI SYNERGY COMMAND v7</h1>
+        <p style="opacity: 0.5; font-size: 16px;">金の折れ線グラフ：その判定時にエントリーした場合の現在の通算損益(%)</p>
+    </header>
+    <div class="matrix"></div>
+    <div id="overlay" onclick="closeM()">
+        <div id="modal" onclick="event.stopPropagation()">
+            <span class="close" onclick="closeM()">&times;</span>
+            <div id="content"></div>
         </div>
-        <footer style="margin-top: 50px; text-align: center; color: var(--text-dim); font-size: 12px;">
-            ※ 現在価格は yfinance 経由で取得しています。実際の約定価格とは異なる場合があります。<br>
-            &copy; 2026 AI Trading System Engine
-        </footer>
     </div>
+
+    <script>
+        const assets = [{"ticker": "4004", "full_ticker": "4004.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": -1.91, "curr_price": 11295.0, "history_probs": [99.9, 99.9], "history_pnl": [-3.87, -1.91], "history_times": ["03/12 11:31", "03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "4516", "full_ticker": "4516.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": 0.33, "curr_price": 5485.0, "history_probs": [99.9, 99.9, 99.9], "history_pnl": [2.66, 1.35, 0.33], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "4578", "full_ticker": "4578.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": 0.32, "curr_price": 11115.0, "history_probs": [99.9, 99.9, 99.9], "history_pnl": [1.28, 0.86, 0.32], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "5801", "full_ticker": "5801.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": -0.26, "curr_price": 28925.0, "history_probs": [99.9, 99.9], "history_pnl": [-0.02, -0.26], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "5803", "full_ticker": "5803.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": -2.39, "curr_price": 25085.0, "history_probs": [99.9, 99.9], "history_pnl": [-1.94, -2.39], "history_times": ["03/12 11:31", "03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "7974", "full_ticker": "7974.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": 0.0, "curr_price": 10200.0, "history_probs": [99.9, 99.9, 99.9], "history_pnl": [0.99, 0.49, 0.0], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9766", "full_ticker": "9766.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 99.9, "latest_pnl": 0.05, "curr_price": 20690.0, "history_probs": [99.9, 99.9], "history_pnl": [1.3, 0.05], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "5631", "full_ticker": "5631.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 96.6056841774495, "latest_pnl": 0.49, "curr_price": 10175.0, "history_probs": [99.9, 96.6056841774495], "history_pnl": [0.79, 0.49], "history_times": ["03/12 11:31", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "2371", "full_ticker": "2371.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 96.1864251100867, "latest_pnl": 0.9, "curr_price": 1909.0, "history_probs": [99.12251707927676, 96.1864251100867], "history_pnl": [1.68, 0.9], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "5802", "full_ticker": "5802.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 96.163345839979, "latest_pnl": -0.59, "curr_price": 10125.0, "history_probs": [99.9, 99.9, 96.163345839979], "history_pnl": [-3.48, -2.32, -0.59], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "5844", "full_ticker": "5844.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 88.8078033449462, "latest_pnl": -0.34, "curr_price": 4384.0, "history_probs": [70.98581427844555, 88.8078033449462], "history_pnl": [0.74, -0.34], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "6965", "full_ticker": "6965.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 87.13480079709669, "latest_pnl": 0.1, "curr_price": 2050.5, "history_probs": [99.9, 87.13480079709669], "history_pnl": [2.5, 0.1], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "6920", "full_ticker": "6920.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "prob": 84.47328017432162, "latest_pnl": -0.03, "curr_price": 36390.0, "history_probs": [99.9, 99.9, 84.47328017432162], "history_pnl": [1.14, 0.11, -0.03], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "4063", "full_ticker": "4063.T", "size": "large", "color": "rgba(255, 46, 99, 0.6)", "prob": 78.74619506988765, "latest_pnl": -0.22, "curr_price": 6360.0, "history_probs": [99.9, 92.14928454507026, 78.74619506988765], "history_pnl": [0.3, -0.64, -0.22], "history_times": ["03/12 11:31", "03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9107", "full_ticker": "9107.T", "size": "large", "color": "rgba(255, 46, 99, 0.6)", "prob": 78.62619007948646, "latest_pnl": 0.0, "curr_price": 2652.0, "history_probs": [76.46843372060268, 78.62619007948646], "history_pnl": [-0.66, 0.0], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9104", "full_ticker": "9104.T", "size": "large", "color": "rgba(255, 46, 99, 0.6)", "prob": 77.2673721787886, "latest_pnl": -0.05, "curr_price": 6161.0, "history_probs": [87.63178046499966, 77.2673721787886], "history_pnl": [-0.21, -0.05], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9101", "full_ticker": "9101.T", "size": "large", "color": "rgba(255, 46, 99, 0.6)", "prob": 75.26378057304639, "latest_pnl": 0.05, "curr_price": 5740.0, "history_probs": [99.9, 75.26378057304639], "history_pnl": [0.02, 0.05], "history_times": ["03/12 16:00", "03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "2337", "full_ticker": "2337.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 99.9, "latest_pnl": -0.2, "curr_price": 492.0, "history_probs": [99.9], "history_pnl": [-0.2], "history_times": ["03/12 11:31"], "last_seen": "03/12 11:31"}, {"ticker": "5706", "full_ticker": "5706.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 99.9, "latest_pnl": -1.55, "curr_price": 31070.0, "history_probs": [99.9], "history_pnl": [-1.55], "history_times": ["03/12 11:31"], "last_seen": "03/12 11:31"}, {"ticker": "1663", "full_ticker": "1663.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 99.65111553595996, "latest_pnl": 3.58, "curr_price": 5490.0, "history_probs": [99.65111553595996], "history_pnl": [3.58], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "1662", "full_ticker": "1662.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 94.03634229386628, "latest_pnl": 2.24, "curr_price": 2551.0, "history_probs": [94.03634229386628], "history_pnl": [2.24], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "6460", "full_ticker": "6460.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 88.81713236787756, "latest_pnl": -0.43, "curr_price": 2667.5, "history_probs": [88.81713236787756], "history_pnl": [-0.43], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "4751", "full_ticker": "4751.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 84.78893116440864, "latest_pnl": 0.46, "curr_price": 1414.0, "history_probs": [84.78893116440864], "history_pnl": [0.46], "history_times": ["03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9468", "full_ticker": "9468.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 84.14012781581988, "latest_pnl": 0.09, "curr_price": 3197.0, "history_probs": [84.14012781581988], "history_pnl": [0.09], "history_times": ["03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9602", "full_ticker": "9602.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 79.91689114012604, "latest_pnl": -0.03, "curr_price": 1620.5, "history_probs": [79.91689114012604], "history_pnl": [-0.03], "history_times": ["03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "6752", "full_ticker": "6752.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 79.72355700607298, "latest_pnl": -0.69, "curr_price": 2594.0, "history_probs": [79.72355700607298], "history_pnl": [-0.69], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "1605", "full_ticker": "1605.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 78.71562454229596, "latest_pnl": 1.14, "curr_price": 4348.0, "history_probs": [78.71562454229596], "history_pnl": [1.14], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "7453", "full_ticker": "7453.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 76.58796225670741, "latest_pnl": 1.71, "curr_price": 3747.0, "history_probs": [76.58796225670741], "history_pnl": [1.71], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "6963", "full_ticker": "6963.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 76.3204113827959, "latest_pnl": 0.6, "curr_price": 3351.0, "history_probs": [76.3204113827959], "history_pnl": [0.6], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "6754", "full_ticker": "6754.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 73.2947371579482, "latest_pnl": -1.22, "curr_price": 2835.5, "history_probs": [73.2947371579482], "history_pnl": [-1.22], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "3635", "full_ticker": "3635.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 73.03242100136065, "latest_pnl": 0.08, "curr_price": 1854.5, "history_probs": [73.03242100136065], "history_pnl": [0.08], "history_times": ["03/13 09:30"], "last_seen": "03/13 09:30"}, {"ticker": "9513", "full_ticker": "9513.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 72.20516849964164, "latest_pnl": 0.33, "curr_price": 3932.0, "history_probs": [72.20516849964164], "history_pnl": [0.33], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}, {"ticker": "9697", "full_ticker": "9697.T", "size": "small", "color": "rgba(0, 210, 255, 0.4)", "prob": 71.92798624658474, "latest_pnl": 2.14, "curr_price": 3531.0, "history_probs": [71.92798624658474], "history_pnl": [2.14], "history_times": ["03/12 16:00"], "last_seen": "03/12 16:00"}];
+        function draw() {
+            const grid = document.querySelector('.matrix');
+            assets.forEach(a => {
+                const d = document.createElement('div');
+                d.className = `tile ${a.size}`;
+                d.style.backgroundColor = a.color;
+                d.innerHTML = `<span class="ticker-txt">${a.ticker}</span>`;
+                d.onclick = () => openM(a);
+                grid.appendChild(d);
+            });
+        }
+
+        let chart;
+        function openM(a) {
+            const pColor = a.latest_pnl >= 0 ? 'var(--stable)' : 'var(--danger)';
+            document.getElementById('overlay').style.display = 'flex';
+            document.getElementById('content').innerHTML = `
+                <div style="font-size: 14px; opacity: 0.5; letter-spacing: 2px;">RELATIONAL ANALYSIS: ${a.full_ticker}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <h2 style="font-size: 110px; font-family: 'Dela Gothic One'; margin: 0;">${a.ticker}</h2>
+                    <div style="text-align: right;">
+                        <div style="color: ${pColor}; font-size: 70px; font-weight: 900; line-height: 1;">${a.latest_pnl >= 0 ? '+' : ''}${a.latest_pnl}%</div>
+                        <div style="font-size: 16px; opacity: 0.6; margin-top: 10px;">LATEST ENTRY P/L</div>
+                    </div>
+                </div>
+                <div style="margin-top: 30px; background: rgba(0,0,0,0.3); border-radius: 40px; padding: 30px;">
+                    <canvas id="chart"></canvas>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 13px; font-weight: 700;">
+                    <span style="color: #00d2ff;">● AI CONFIDENCE (%)</span>
+                    <span style="color: #ffd700;">● POTENTIAL P/L (%) IF BOUGHT AT TIME</span>
+                    <span style="opacity: 0.4;">LAST SYNC: ${a.last_seen}</span>
+                </div>
+            `;
+
+            const ctx = document.getElementById('chart').getContext('2d');
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: a.history_times,
+                    datasets: [
+                        {
+                            label: 'AI 確信度 (%)',
+                            data: a.history_probs,
+                            borderColor: '#00d2ff',
+                            borderWidth: 5, yAxisID: 'y_prob', tension: 0.4, pointRadius: 6, fill: true,
+                            backgroundColor: 'rgba(0, 210, 255, 0.05)'
+                        },
+                        {
+                            label: '損益推移 (%)',
+                            data: a.history_pnl,
+                            borderColor: '#ffd700',
+                            borderDash: [5, 5],
+                            borderWidth: 3, yAxisID: 'y_pnl', tension: 0.2, pointRadius: 10, pointStyle: 'rectRot'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y_prob: { position: 'left', min: 0, max: 105, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: '確信度 (%)' } },
+                        y_pnl: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '現在損益 (%)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        function closeM() { document.getElementById('overlay').style.display = 'none'; }
+        draw();
+        setTimeout(() => location.reload(), 60000);
+    </script>
 </body>
 </html>
