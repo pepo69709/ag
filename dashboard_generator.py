@@ -56,9 +56,13 @@ def generate_dashboard(last_sync_time=None):
         
         if is_elite:
             color = "rgba(0, 255, 136, 0.6)" # 安定・合格 (Green)
+            bg_grad = "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)"
+            status_text = "ELITE BUY"
             size = "large"
         else:
             color = "rgba(255, 46, 99, 0.6)" # 警告・不利益 (Red)
+            bg_grad = "linear-gradient(135deg, rgba(255,46,99,0.8) 0%, rgba(200,20,60,0.9) 100%)"
+            status_text = "WARNING"
             size = "large"
 
         assets_data.append({
@@ -66,7 +70,9 @@ def generate_dashboard(last_sync_time=None):
             "full_ticker": ticker,
             "size": size,
             "color": color,
-            "prob": latest['win_prob'],
+            "bg_grad": bg_grad,
+            "status_text": status_text,
+            "prob": round(latest['win_prob'], 1),
             "latest_pnl": history_pnl[-1],
             "curr_price": curr_p,
             "history_probs": history_probs,
@@ -96,14 +102,16 @@ def generate_dashboard(last_sync_time=None):
             --danger: #ff2e63;
         }}
         body {{ background: var(--bg); color: white; font-family: 'Outfit', sans-serif; padding: 40px; margin:0; }}
-        .matrix {{ display: flex; flex-wrap: wrap; gap: 20px; }}
-        .tile {{ border-radius: 25px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }}
-        .tile:hover {{ transform: scale(1.05); filter: brightness(1.2); box-shadow: 0 0 30px rgba(255,255,255,0.1); }}
+        .matrix {{ display: flex; flex-wrap: wrap; gap: 25px; padding-top: 20px; }}
+        .tile {{ border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }}
+        .tile::before {{ content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0)); transform: skewX(-20deg); transition: 0.6s; z-index: 1; }}
+        .tile:hover::before {{ left: 200%; }}
+        .tile:hover {{ transform: translateY(-10px) scale(1.03); box-shadow: 0 20px 40px rgba(0,0,0,0.8); }}
         .small {{ width: 140px; height: 140px; }}
         .large {{ width: 300px; height: 300px; }}
-        .ticker-txt {{ font-family: 'Dela Gothic One', cursive; pointer-events: none; }}
+        .ticker-txt {{ font-family: 'Dela Gothic One', cursive; pointer-events: none; z-index: 2; }}
         .small .ticker-txt {{ font-size: 28px; }}
-        .large .ticker-txt {{ font-size: 80px; text-shadow: 0 0 20px rgba(255,255,255,0.2); }}
+        .large .ticker-txt {{ font-size: 85px; text-shadow: 0 10px 20px rgba(0,0,0,0.4); margin-bottom: 10px; }}
 
         #overlay {{ position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); }}
         #modal {{ background: #0f172a; width: 95%; max-width: 1000px; padding: 50px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); position: relative; }}
@@ -137,8 +145,16 @@ def generate_dashboard(last_sync_time=None):
             assets.forEach(a => {{
                 const d = document.createElement('div');
                 d.className = `tile ${{a.size}}`;
-                d.style.backgroundColor = a.color;
-                d.innerHTML = `<span class="ticker-txt">${{a.ticker}}</span>`;
+                d.style.background = a.bg_grad;
+                d.innerHTML = `
+                    <div style="position: absolute; top: 20px; right: 25px; font-weight: 900; font-size: 28px; color: #fff; text-shadow: 0 5px 15px rgba(0,0,0,0.6); z-index: 2;">
+                        ${{a.prob}}%
+                    </div>
+                    <div style="position: absolute; bottom: 25px; left: 0; width: 100%; text-align: center; font-weight: 900; font-size: 20px; letter-spacing: 4px; opacity: 0.95; text-shadow: 0 5px 15px rgba(0,0,0,0.6); z-index: 2;">
+                        ${{a.status_text}}
+                    </div>
+                    <span class="ticker-txt">${{a.ticker}}</span>
+                `;
                 d.onclick = () => openM(a);
                 grid.appendChild(d);
             }});
