@@ -126,7 +126,7 @@ def live_patrol():
         time.sleep(config.SCAN_INTERVAL_MIN * 60)
 
 if __name__ == "__main__":
-    now = datetime.now()
+    now = get_now()
     
     # 🧼 スマート・リセット: 朝9時前（準備時間）だけダッシュボードを掃除する
     if now.hour < 9:
