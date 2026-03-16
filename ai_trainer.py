@@ -13,17 +13,19 @@ from lightgbm import LGBMClassifier
 
 print("🤖 プロフェッショナル・モードで学習を開始します...")
 
-file_path = "ai_training_data.csv"
+file_path = "ai_training_data_honest.csv"
 try:
     df = pd.read_csv(file_path)
-    # 🔴 時系列リーク防止: 日付でソート
     df = df.sort_values("timestamp").reset_index(drop=True)
 except FileNotFoundError:
     print("❌ データが見つかりません。")
     exit()
 
-# 特徴量リスト
-features = ['feat_price', 'feat_dev', 'feat_rsi', 'feat_vol', 'feat_volatility', 'feat_trend', 'feat_dayofweek', 'feat_macd', 'feat_bb_pos', 'feat_gap', 'feat_nikkei_trend', 'feat_fear_index', 'feat_market_phase']
+# 特徴量リスト（正直バージョン）
+features = [
+    'feat_dev', 'feat_rsi', 'feat_vol', 'feat_gap', 
+    'feat_panic', 'feat_nikkei_vol', 'feat_rel_strength'
+]
 
 available_features = [f for f in features if f in df.columns]
 X = df[available_features]

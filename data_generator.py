@@ -9,7 +9,7 @@ import os
 # 📊 DATA-GENERATOR: AI学習用データ生成スクリプト (バグ完全修正版)
 # ==========================================
 
-YEARS_TO_FETCH = 2
+YEARS_TO_FETCH = 5   # 2年→5年に拡張（コロナ後・上昇・下落・停滞を全部含む）
 SAMPLE_INTERVAL = 5 
 
 def generate_training_data():
@@ -95,24 +95,25 @@ def generate_training_data():
             trend_ratio = sma25 / sma50.replace(0, 1e-6)
 
             # =====================================
-            # 🎯 新戦略：当日中に+1%達成したか（寄り付き→当日高値）
-            # label=1: その日のHighが山値から+1%以上
-            # label=0: 達成できなかった
+            # 🎯 ラベル定義：当日終値が始値から+1%以上か
+            # ・高値(High)ではなく終値(Close)を使用
+            #   理由: 引け成行注文で確実に売れるリアルな価格
+            # ・feat_price は除外（絶対株価=データリーク）
             # =====================================
-            INTRADAY_TARGET = 1.0  # 当日+1%
+            CLOSE_TARGET = 1.0  # 終値が始値から+1%
 
-            # サンプリング実行（最後の1行を除く）
+            # サンプリング実行
             for date_idx in range(50, len(close) - 1, SAMPLE_INTERVAL):
-                entry_price = float(open_p.iloc[date_idx])   # 山値でエントリー
+                entry_price = float(open_p.iloc[date_idx])   # 始値で買い
                 if entry_price <= 0:
                     continue
                 entry_date = close.index[date_idx]
-                day_high = float(high.iloc[date_idx])         # 当日高値
+                day_close = float(close.iloc[date_idx])      # 当日終値（引け成行で売れる値段）
 
-                # 当日中に+1%達成（山値→当日高値）
-                intraday_gain = (day_high / entry_price - 1) * 100
-                label = 1 if intraday_gain >= INTRADAY_TARGET else 0
-                if True:  # 全レコードを対象に（nanフィルター不要）
+                # 終値が始値から+1%以上移動したか
+                close_gain = (day_close / entry_price - 1) * 100
+                label = 1 if close_gain >= CLOSE_TARGET else 0
+                if True:
 
                     def get_val(series, date, default):
                         try:
@@ -129,12 +130,12 @@ def generate_training_data():
                     training_data.append({
                         "timestamp": entry_date.strftime('%Y-%m-%d'),
                         "ticker": ticker,
-                        "feat_price": round(entry_price, 1),
+                        # feat_price を削除（絶対株価はデータリーク＝銘柄固有の記憶）
                         "feat_dev": round(float(dev.iloc[date_idx]), 2),
                         "feat_rsi": round(float(rsi.iloc[date_idx]), 2),
                         "feat_vol": round(float(vol_ratio.iloc[date_idx]), 2),
                         "feat_volatility": round(float(volat.iloc[date_idx]), 2),
-                        "feat_trend": round(float(trend_ratio.iloc[date_idx]), 2), # 修正済み
+                        "feat_trend": round(float(trend_ratio.iloc[date_idx]), 2),
                         "feat_dayofweek": entry_date.weekday(),
                         "feat_macd": round(float(macd_hist.iloc[date_idx]), 2),
                         "feat_bb_pos": round(float(bb_position.iloc[date_idx]), 2),
