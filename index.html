@@ -39,7 +39,7 @@
         <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
             <div style="font-size: 12px; opacity: 0.4; letter-spacing: 1px;">SYSTEM STATUS</div>
             <div style="color: var(--stable); font-size: 20px; font-weight: 900;">ACTIVE / LIVE</div>
-            <div style="font-size: 14px; opacity: 0.6;">LAST CHECK: 03/16 13:00</div>
+            <div style="font-size: 14px; opacity: 0.6;">LAST CHECK: 03/16 13:30</div>
         </div>
     </header>
     <div class="matrix"></div>
@@ -51,7 +51,7 @@
     </div>
 
     <script>
-        const assets = [{"ticker": "7832", "full_ticker": "7832.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 88.4, "latest_pnl": 0.23, "curr_price": 4269.0, "history_probs": [89.16728189444166, 88.33476549982362, 88.44514608460834, 88.44514608460834], "history_pnl": [0.33, 0.14, 0.23, 0.23], "history_times": ["03/16 11:00", "03/16 11:30", "03/16 12:00", "03/16 12:30"], "last_seen": "03/16 12:30"}, {"ticker": "4516", "full_ticker": "4516.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 86.4, "latest_pnl": -3.95, "curr_price": 5250.0, "history_probs": [86.44750751634744], "history_pnl": [-3.95], "history_times": ["03/13 15:00"], "last_seen": "03/13 15:00"}];
+        const assets = [{"ticker": "7832", "full_ticker": "7832.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 88.4, "latest_pnl": 0.21, "curr_price": 4268.0, "history_probs": [89.16728189444166, 88.33476549982362, 88.44514608460834, 88.44514608460834], "history_pnl": [0.31, 0.12, 0.21, 0.21], "history_times": ["03/16 11:00", "03/16 11:30", "03/16 12:00", "03/16 12:30"], "last_seen": "03/16 12:30"}, {"ticker": "4516", "full_ticker": "4516.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 86.4, "latest_pnl": -4.79, "curr_price": 5204.0, "history_probs": [86.44750751634744], "history_pnl": [-4.79], "history_times": ["03/13 15:00"], "last_seen": "03/13 15:00"}];
         function draw() {
             const grid = document.querySelector('.matrix');
             assets.forEach(a => {
