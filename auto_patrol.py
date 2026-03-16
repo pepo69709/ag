@@ -22,6 +22,11 @@ def run_scanner():
         print(f"⚠️ スキャン実行中にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
+    # 起動直後に接続テスト通知
+    now = datetime.now()
+    test_msg = f"🚀 スナイパー・パトロール、クラウド上で起動したのだ！\n現在時刻: {now.strftime('%H:%M:%S')}\n接続テスト: 正常なのだ！"
+    send_notification(test_msg)
+    
     # 初回実行
     run_scanner()
     
