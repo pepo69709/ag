@@ -13,8 +13,16 @@ import joblib
 import time
 import requests
 import os
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import config
+
+# 日本時間(JST)の設定
+JST = timezone(timedelta(hours=9), 'JST')
+
+def get_now():
+    """常に日本時間を取得"""
+    return datetime.now(JST)
+
 
 # モデルロード
 try:
