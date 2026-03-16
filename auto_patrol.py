@@ -119,7 +119,13 @@ def live_patrol():
 
 if __name__ == "__main__":
     now = datetime.now()
-    test_msg = f"🚀 スナイパー・パトロール、クラウド上で起動したのだ！\n現在時刻: {now.strftime('%H:%M:%S')}\n接続テスト: 正常なのだ！"
+    
+    # 🧼 起動時にまずダッシュボードを掃除する
+    print("🧹 前日の残骸をクリアしています...")
+    send_to_gas({"action": "reset"})
+    
+    # 起動直後に接続テスト通知
+    test_msg = f"🚀 スナイパー・パトロール、クラウド上で起動したのだ！\n現在時刻: {now.strftime('%H:%M:%S')}\n真っさらな状態で監視を開始するのだ！"
     send_notification(test_msg)
     
     # 時間帯によって動作を変える
