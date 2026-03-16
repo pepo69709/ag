@@ -1,136 +1,208 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>AI SYNERGY COMMAND v7</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
+    <meta http-equiv="refresh" content="120">
+    <title>AI 当日+1%狙い ダッシュボード</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;900&family=Dela+Gothic+One&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #03050a;
-            --stable: #00ff88;
-            --rising: #00d2ff;
-            --danger: #ff2e63;
+            --green: #00ff88;
+            --blue: #00d2ff;
+            --red: #ff2e63;
+            --gold: #ffd700;
         }
-        body { background: var(--bg); color: white; font-family: 'Outfit', sans-serif; padding: 40px; margin:0; }
-        .matrix { display: flex; flex-wrap: wrap; gap: 25px; padding-top: 20px; }
-        .tile { border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .tile::before { content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%; background: linear-gradient(to right, rgba(255,255,255,0), rgba(255,255,255,0.2), rgba(255,255,255,0)); transform: skewX(-20deg); transition: 0.6s; z-index: 1; }
-        .tile:hover::before { left: 200%; }
-        .tile:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
-        .small { width: 140px; height: 140px; }
-        .large { width: 300px; height: 300px; }
-        .ticker-txt { font-family: 'Dela Gothic One', cursive; pointer-events: none; z-index: 2; }
-        .small .ticker-txt { font-size: 28px; }
-        .large .ticker-txt { font-size: 85px; text-shadow: 0 10px 20px rgba(0,0,0,0.4); margin-bottom: 10px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 32px;
+        }
 
-        #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(15px); }
-        #modal { background: #0f172a; width: 95%; max-width: 1000px; padding: 50px; border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); position: relative; }
-        .close { position: absolute; top: 30px; right: 40px; cursor: pointer; font-size: 40px; opacity: 0.5; }
+        /* ===== ヘッダー ===== */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .title { font-family: 'Dela Gothic One', cursive; font-size: 36px; color: var(--green); }
+        .subtitle { font-size: 13px; opacity: 0.45; margin-top: 6px; }
+
+        /* ===== KPI バー ===== */
+        .kpi-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 36px;
+            flex-wrap: wrap;
+        }
+        .kpi {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 18px 28px;
+            flex: 1;
+            min-width: 140px;
+        }
+        .kpi-label { font-size: 11px; opacity: 0.4; letter-spacing: 1.5px; text-transform: uppercase; }
+        .kpi-value { font-size: 40px; font-weight: 900; margin-top: 4px; }
+        .kpi-value.green { color: var(--green); }
+        .kpi-value.red   { color: var(--red); }
+        .kpi-value.gold  { color: var(--gold); }
+        .kpi-value.blue  { color: var(--blue); }
+
+        /* ===== カードグリッド ===== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            border-radius: 24px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.12);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        }
+        .card-ticker {
+            font-family: 'Dela Gothic One', cursive;
+            font-size: 52px;
+            letter-spacing: -2px;
+            line-height: 1;
+        }
+        .card-badge {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            padding: 4px 12px;
+            margin-top: 10px;
+        }
+        .card-meta {
+            margin-top: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .meta-item .label { font-size: 10px; opacity: 0.5; text-transform: uppercase; letter-spacing: 1px; }
+        .meta-item .val   { font-size: 20px; font-weight: 700; margin-top: 2px; }
+        .gain-hit { color: var(--green); }
+        .prob-val { color: var(--gold); }
+
+        /* 今日の推薦がない時 */
+        .empty-state {
+            text-align: center;
+            padding: 80px 0;
+            opacity: 0.4;
+        }
+        .empty-state .icon { font-size: 60px; }
+        .empty-state p { margin-top: 16px; font-size: 18px; }
+
+        .sync-badge {
+            font-size: 12px;
+            opacity: 0.4;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
-    <header style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+    <header>
         <div>
-            <h1 style="font-weight: 900; color: var(--stable); margin:0; font-size: 48px;">AI SYNERGY COMMAND v7</h1>
-            <p style="opacity: 0.5; font-size: 16px; margin: 5px 0 0 0;">金の折れ線グラフ：その判定時にエントリーした場合の現在の通算損益(%)</p>
+            <div class="title">📈 AI 当日+1%パトロール</div>
+            <div class="subtitle">楽天証券ゼロコース対応 | 始値から当日中に+1%達成を狙う</div>
         </div>
-        <div style="text-align: right; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 20px;">
-            <div style="font-size: 12px; opacity: 0.4; letter-spacing: 1px;">SYSTEM STATUS</div>
-            <div style="color: var(--stable); font-size: 20px; font-weight: 900;">ACTIVE / LIVE</div>
-            <div style="font-size: 14px; opacity: 0.6;">LAST CHECK: 03/16 15:00</div>
+        <div style="text-align:right">
+            <div style="font-size:12px;opacity:0.4;letter-spacing:1px;">LAST SYNC</div>
+            <div style="font-size:22px;font-weight:900;color:var(--green);">03/16 16:00</div>
+            <div class="sync-badge">120秒ごとに自動更新</div>
         </div>
     </header>
-    <div class="matrix"></div>
-    <div id="overlay" onclick="closeM()">
-        <div id="modal" onclick="event.stopPropagation()">
-            <span class="close" onclick="closeM()">&times;</span>
-            <div id="content"></div>
+
+    <div class="kpi-bar">
+        <div class="kpi">
+            <div class="kpi-label">本日の推薦</div>
+            <div class="kpi-value blue">0</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">🎯 達成</div>
+            <div class="kpi-value green">0</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">❌ 未達</div>
+            <div class="kpi-value red">0</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">通算勝率</div>
+            <div class="kpi-value gold">0%</div>
+        </div>
+        <div class="kpi">
+            <div class="kpi-label">平均利益</div>
+            <div class="kpi-value green">+0%</div>
         </div>
     </div>
 
+    <div class="grid" id="grid"></div>
+
     <script>
-        const assets = [{"ticker": "7832", "full_ticker": "7832.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 88.4, "latest_pnl": -0.21, "curr_price": 4250.0, "history_probs": [89.16728189444166, 88.33476549982362, 88.44514608460834, 88.44514608460834], "history_pnl": [-0.12, -0.3, -0.21, -0.21], "history_times": ["03/16 11:00", "03/16 11:30", "03/16 12:00", "03/16 12:30"], "last_seen": "03/16 12:30"}, {"ticker": "4516", "full_ticker": "4516.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 86.4, "latest_pnl": -4.41, "curr_price": 5225.0, "history_probs": [86.44750751634744], "history_pnl": [-4.41], "history_times": ["03/13 15:00"], "last_seen": "03/13 15:00"}, {"ticker": "2206", "full_ticker": "2206.T", "size": "large", "color": "rgba(0, 255, 136, 0.6)", "bg_grad": "linear-gradient(135deg, rgba(0,255,136,0.8) 0%, rgba(0,180,100,0.9) 100%)", "status_text": "ELITE BUY", "prob": 85.5, "latest_pnl": 0.02, "curr_price": 6149.0, "history_probs": [85.45179008837945], "history_pnl": [0.02], "history_times": ["03/16 15:00"], "last_seen": "03/16 15:00"}];
-        function draw() {
-            const grid = document.querySelector('.matrix');
-            assets.forEach(a => {
-                const d = document.createElement('div');
-                d.className = `tile ${a.size}`;
-                d.style.background = a.bg_grad;
-                d.innerHTML = `
-                    <div style="position: absolute; top: 20px; right: 25px; font-weight: 900; font-size: 28px; color: #fff; text-shadow: 0 5px 15px rgba(0,0,0,0.6); z-index: 2;">
-                        ${a.prob}%
-                    </div>
-                    <div style="position: absolute; bottom: 25px; left: 0; width: 100%; text-align: center; font-weight: 900; font-size: 20px; letter-spacing: 4px; opacity: 0.95; text-shadow: 0 5px 15px rgba(0,0,0,0.6); z-index: 2;">
-                        ${a.status_text}
-                    </div>
-                    <span class="ticker-txt">${a.ticker}</span>
-                `;
-                d.onclick = () => openM(a);
-                grid.appendChild(d);
-            });
-        }
+    const cards = [];
+    const grid = document.getElementById('grid');
 
-        let chart;
-        function openM(a) {
-            const pColor = a.latest_pnl >= 0 ? 'var(--stable)' : 'var(--danger)';
-            document.getElementById('overlay').style.display = 'flex';
-            document.getElementById('content').innerHTML = `
-                <div style="font-size: 14px; opacity: 0.5; letter-spacing: 2px;">RELATIONAL ANALYSIS: ${a.full_ticker}</div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <h2 style="font-size: 110px; font-family: 'Dela Gothic One'; margin: 0;">${a.ticker}</h2>
-                    <div style="text-align: right;">
-                        <div style="color: ${pColor}; font-size: 70px; font-weight: 900; line-height: 1;">${a.latest_pnl >= 0 ? '+' : ''}${a.latest_pnl}%</div>
-                        <div style="font-size: 16px; opacity: 0.6; margin-top: 10px;">LATEST ENTRY P/L</div>
-                    </div>
-                </div>
-                <div style="margin-top: 30px; background: rgba(0,0,0,0.3); border-radius: 40px; padding: 30px;">
-                    <canvas id="chart"></canvas>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 25px; font-size: 13px; font-weight: 700;">
-                    <span style="color: #00d2ff;">● AI CONFIDENCE (%)</span>
-                    <span style="color: #ffd700;">● POTENTIAL P/L (%) IF BOUGHT AT TIME</span>
-                    <span style="opacity: 0.4;">LAST SYNC: ${a.last_seen}</span>
-                </div>
-            `;
+    if (cards.length === 0) {
+        grid.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1">
+                <div class="icon">🛰️</div>
+                <p>本日の推薦銘柄はまだありません。<br>次のスキャン（30分ごと）をお待ちください。</p>
+            </div>`;
+    } else {
+        cards.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            el.style.background = c.grad;
 
-            const ctx = document.getElementById('chart').getContext('2d');
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: a.history_times,
-                    datasets: [
-                        {
-                            label: 'AI 確信度 (%)',
-                            data: a.history_probs,
-                            borderColor: '#00d2ff',
-                            borderWidth: 5, yAxisID: 'y_prob', tension: 0.4, pointRadius: 6, fill: true,
-                            backgroundColor: 'rgba(0, 210, 255, 0.05)'
-                        },
-                        {
-                            label: '損益推移 (%)',
-                            data: a.history_pnl,
-                            borderColor: '#ffd700',
-                            borderDash: [5, 5],
-                            borderWidth: 3, yAxisID: 'y_pnl', tension: 0.2, pointRadius: 10, pointStyle: 'rectRot'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y_prob: { position: 'left', min: 0, max: 105, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: '確信度 (%)' } },
-                        y_pnl: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '現在損益 (%)' } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-        function closeM() { document.getElementById('overlay').style.display = 'none'; }
-        draw();
-        setTimeout(() => location.reload(), 60000);
+            const gainBlock = c.status === '✅ 達成！'
+                ? `<div class="meta-item">
+                    <div class="label">達成利益</div>
+                    <div class="val gain-hit">${c.gain_str}</div>
+                   </div>
+                   <div class="meta-item">
+                    <div class="label">達成時刻</div>
+                    <div class="val">${c.achieved_time}</div>
+                   </div>`
+                : `<div class="meta-item">
+                    <div class="label">エントリー</div>
+                    <div class="val">${c.entry_price.toLocaleString()}円</div>
+                   </div>
+                   <div class="meta-item">
+                    <div class="label">推薦時刻</div>
+                    <div class="val">${c.entry_time}</div>
+                   </div>`;
+
+            el.innerHTML = `
+                <div class="card-ticker">${c.ticker}</div>
+                <span class="card-badge">${c.badge}</span>
+                <div class="card-meta">
+                    <div class="meta-item">
+                        <div class="label">AI確信度</div>
+                        <div class="val prob-val">${c.win_prob}%</div>
+                    </div>
+                    ${gainBlock}
+                </div>`;
+            grid.appendChild(el);
+        });
+    }
     </script>
 </body>
 </html>
