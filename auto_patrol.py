@@ -73,10 +73,11 @@ def live_patrol():
         # "7733.T": {"entry_p": 0.0, "status": "watching"},
     }
     
-    print("🕵️ パトロール開始...")
+    now = get_now()
+    print(f"🕵️ パトロール開始（判定時刻: {now.strftime('%H:%M:%S')} JST）")
     
     while True:
-        now = datetime.now()
+        now = get_now()
         
         # 市場終了(15:01)でリセット
         if now.hour == 15 and now.minute >= 1:
