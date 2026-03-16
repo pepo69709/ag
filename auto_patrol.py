@@ -141,8 +141,14 @@ if __name__ == "__main__":
     
     # 時間帯によって動作を変える
     if now.hour == 8 and now.minute >= 50:
-        # 朝のスキャン時間（本来はここでロジックを呼ぶ）
-        send_notification("🌅 8:55になりました。本日の激熱銘柄をスキャンするのだ！")
-        # scan_targets()
+        # 朝のスキャン時間
+        send_notification("🌅 08:55になりました。本日の激熱銘柄をスキャニングするのだ！")
+        # ここで scanner.py を自動実行するロジック
+        try:
+            import subprocess
+            subprocess.run(["python", "blind_test.py", "--today"], capture_output=True)
+            send_notification("🎯 スキャン完了！今日のスナイパー銘柄をダッシュボードに反映したのだ。")
+        except:
+            send_notification("⚠️ スキャンの実行に失敗したのだ。設定を確認してほしいのだ。")
     
     live_patrol()
