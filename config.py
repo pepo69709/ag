@@ -68,5 +68,6 @@ ENTRY_RSI_MAX = 85.0
 EXIT_PROFIT_TARGET = 1.0  # +1.0%で指値
 EXIT_STOP_LOSS = 2.0      # -2.0%で逆指値
 SCAN_INTERVAL_MIN = 3     # 3分おきにパトロール
-
+# 4. 外部連携
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL", "")
+GAS_WEBHOOK_URL = os.environ.get("GAS_WEBHOOK_URL", "")
