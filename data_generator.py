@@ -9,8 +9,8 @@ import os
 # 📊 DATA-GENERATOR: AI学習用データ生成スクリプト (バグ完全修正版)
 # ==========================================
 
-YEARS_TO_FETCH = 3
-SAMPLE_INTERVAL = 10 
+YEARS_TO_FETCH = 2
+SAMPLE_INTERVAL = 5 
 
 def generate_training_data():
     print(f"🚀 AI特訓用データの生成を開始します... (対象期間: 過去{YEARS_TO_FETCH}年)")
@@ -94,25 +94,26 @@ def generate_training_data():
             # Trend 計算も Series の状態で行う
             trend_ratio = sma25 / sma50.replace(0, 1e-6)
 
-            # サンプリング実行
-            for date_idx in range(50, len(close) - 5, SAMPLE_INTERVAL):
-                entry_price = float(close.iloc[date_idx])
+            # =====================================
+            # 🎯 新戦略：当日中に+1%達成したか（寄り付き→当日高値）
+            # label=1: その日のHighが山値から+1%以上
+            # label=0: 達成できなかった
+            # =====================================
+            INTRADAY_TARGET = 1.0  # 当日+1%
+
+            # サンプリング実行（最後の1行を除く）
+            for date_idx in range(50, len(close) - 1, SAMPLE_INTERVAL):
+                entry_price = float(open_p.iloc[date_idx])   # 山値でエントリー
+                if entry_price <= 0:
+                    continue
                 entry_date = close.index[date_idx]
-                f_high = high.iloc[date_idx+1 : date_idx+61].values
-                f_low = low.iloc[date_idx+1 : date_idx+61].values
-                target_p = entry_price * (1 + (config.EXIT_PROFIT_TARGET / 100))
-                stop_p = entry_price * (1 - (config.EXIT_STOP_LOSS / 100))
-                
-                label = np.nan
-                for day_idx in range(len(f_high)):
-                    if f_low[day_idx] <= stop_p:
-                        label = 0
-                        break
-                    elif f_high[day_idx] >= target_p:
-                        label = 1
-                        break
-                
-                if not np.isnan(label):
+                day_high = float(high.iloc[date_idx])         # 当日高値
+
+                # 当日中に+1%達成（山値→当日高値）
+                intraday_gain = (day_high / entry_price - 1) * 100
+                label = 1 if intraday_gain >= INTRADAY_TARGET else 0
+                if True:  # 全レコードを対象に（nanフィルター不要）
+
                     def get_val(series, date, default):
                         try:
                             d = pd.to_datetime(date).normalize()

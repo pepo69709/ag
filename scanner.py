@@ -160,24 +160,79 @@ def run_trainer_scan():
         print(f"📊 統計データ: {len(all_stats)}件 / 一次ヒット: {len(primary_hits)}件 / AI合格: {len(golden_hits)}件")
         top_movers = sorted(all_stats, key=lambda x: x['dev'], reverse=True)[:5]
 
-        # 履歴記録 (検証用)
+        today_str = now_jst.strftime('%Y-%m-%d')
+
+        # =========================================
+        # 📋 1. 朝のスキャン：本日の候補をCSVに記録（重複防止）
+        # =========================================
         if golden_hits:
             file_exists = os.path.exists("trade_tracker.csv")
-            log_df = pd.DataFrame([{
-                "timestamp": now_jst.strftime('%Y-%m-%d %H:%M'),
-                "ticker": s["ticker"],
-                "entry_price": s["price"],
-                "win_prob": s["win_prob"],
-                "dev": s["dev"],
-                "rsi": s["rsi"],
-                "ichimoku": 0.0,
-                "vol_trend": 0.0,
-                "label": None
-            } for s in golden_hits])
-            log_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
-            print(f"📖 {len(golden_hits)}件の予測を trade_tracker.csv に記録しました。")
-            
-        # ライブ・ダッシュボードを自動更新 (ヒットがなくても生存確認のために更新)
+            existing_df = pd.read_csv("trade_tracker.csv") if file_exists else pd.DataFrame()
+
+            new_rows = []
+            for s in golden_hits:
+                # 当日・同銘柄で既に記録済みなら重複追加しない
+                already = False
+                if not existing_df.empty and 'ticker' in existing_df.columns and 'date' in existing_df.columns:
+                    already = ((existing_df['ticker'] == s['ticker']) & (existing_df['date'] == today_str)).any()
+                if not already:
+                    new_rows.append({
+                        "date": today_str,
+                        "entry_time": now_jst.strftime('%H:%M'),
+                        "ticker": s["ticker"],
+                        "entry_price": s["price"],
+                        "win_prob": round(s["win_prob"], 1),
+                        "status": "🕐 待機中",   # → 当日+1%達成で ✅ に変わる
+                        "achieved_price": None,
+                        "achieved_time": None,
+                        "gain_pct": None,
+                    })
+            if new_rows:
+                new_df = pd.DataFrame(new_rows)
+                new_df.to_csv("trade_tracker.csv", mode='a', header=not file_exists, index=False, encoding="utf-8")
+                print(f"📖 {len(new_rows)}件の新規予測を trade_tracker.csv に記録しました。")
+
+        # =========================================
+        # 🎯 2. 日中監視：当日+1%を達成した銘柄をチェック
+        # =========================================
+        target_hit_alerts = []
+        if os.path.exists("trade_tracker.csv"):
+            tracker = pd.read_csv("trade_tracker.csv")
+            # 今日のレコードで「待機中」のものを絞り込む
+            if 'date' in tracker.columns and 'status' in tracker.columns:
+                today_waiting = tracker[(tracker['date'] == today_str) & (tracker['status'] == "🕐 待機中")]
+                for idx, row in today_waiting.iterrows():
+                    try:
+                        t = yf.Ticker(row['ticker'])
+                        hist = t.history(period='1d', interval='5m')
+                        if hist.empty:
+                            continue
+                        current_price = float(hist['Close'].iloc[-1])
+                        entry_price = float(row['entry_price'])
+                        gain = (current_price / entry_price - 1) * 100
+                        if gain >= 1.0:
+                            # ✅ 達成！
+                            tracker.at[idx, 'status'] = '✅ 達成！'
+                            tracker.at[idx, 'achieved_price'] = round(current_price, 0)
+                            tracker.at[idx, 'achieved_time'] = now_jst.strftime('%H:%M')
+                            tracker.at[idx, 'gain_pct'] = round(gain, 2)
+                            target_hit_alerts.append({
+                                "ticker": row['ticker'],
+                                "entry": entry_price,
+                                "current": current_price,
+                                "gain": gain,
+                                "prob": row['win_prob']
+                            })
+                            print(f"🎯 TARGET HIT! {row['ticker']} +{gain:.2f}%")
+                    except Exception as ex:
+                        pass
+
+                if target_hit_alerts or not today_waiting.empty:
+                    tracker.to_csv("trade_tracker.csv", index=False, encoding="utf-8")
+
+        # =========================================
+        # 📊 3. ダッシュボード更新
+        # =========================================
         try:
             from dashboard_generator import generate_dashboard
             generate_dashboard(last_sync_time=now_jst.strftime('%m/%d %H:%M'))
@@ -185,23 +240,42 @@ def run_trainer_scan():
         except Exception as e:
             print(f"Dashboard Update Error: {e}")
 
-        # Discord通知
+        # =========================================
+        # 📣 4. Discord通知
+        # =========================================
         if "http" in webhook_url:
             fields = []
-            if golden_hits:
-                # 確信度が高い順に並び替え
-                golden_hits = sorted(golden_hits, key=lambda x: x['win_prob'], reverse=True)
-                hits_text = "".join([f"⭐ **{s['ticker']}**: {s['price']:,.0f}円 (AI確信度:**{s['win_prob']:.1f}%** 🎯)\n" for s in golden_hits[:15]])
-                fields.append({"name": f"🔥 【AI精鋭チーム認定：絶対お宝銘柄 ({len(golden_hits)}件)】", "value": hits_text, "inline": False})
-            else:
-                fields.append({"name": "🛰️ マーケット状況", "value": "現在、AIが『絶対の自信』を持って推奨できる銘柄は見つかりませんでした。無理なトレードは控えましょう。", "inline": False})
 
+            # 🎯 当日+1%達成アラート（最優先）
+            if target_hit_alerts:
+                hit_text = "".join([
+                    f"🎯 **{a['ticker']}**: {a['entry']:,.0f}円 → {a['current']:,.0f}円 (**+{a['gain']:.2f}%** ✅)\n"
+                    for a in target_hit_alerts
+                ])
+                fields.append({"name": "🎉 【本日TARGET達成！+1%クリア！】", "value": hit_text, "inline": False})
+
+            # 📋 本日の新規推薦
+            if golden_hits:
+                golden_hits = sorted(golden_hits, key=lambda x: x['win_prob'], reverse=True)
+                hits_text = "".join([
+                    f"⭐ **{s['ticker']}**: {s['price']:,.0f}円 (AI確信度: **{s['win_prob']:.1f}%**)\n"
+                    for s in golden_hits[:10]
+                ])
+                fields.append({"name": f"🔥 【本日の推薦銘柄（当日+1%狙い）{len(golden_hits)}件】", "value": hits_text, "inline": False})
+            else:
+                fields.append({
+                    "name": "🛰️ 本日の推薦",
+                    "value": "条件を満たす銘柄なし。無理なトレードは禁物。",
+                    "inline": False
+                })
+
+            color = 0xFFD700 if target_hit_alerts else (0x00FF88 if golden_hits else 0x3498DB)
             embed = {
-                "title": "🛡️ 【AI 資産防衛：1.0% 着実パトロール】",
-                "color": 0x00FF88 if golden_hits else 0x3498DB,
-                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')}\n500銘柄を調査。水増しなしの生スコア 85% 超えの『真実のダイヤ』を捜索中。",
+                "title": "📈 【AI 当日+1%狙いパトロール】",
+                "color": color,
+                "description": f"解析時刻: {now_jst.strftime('%m/%d %H:%M')} | 監視銘柄: 500本",
                 "fields": fields,
-                "footer": {"text": f"目標利益: {config.EXIT_PROFIT_TARGET}% / 損切: {config.EXIT_STOP_LOSS}% / 監視銘柄数: 500"}
+                "footer": {"text": "🎯 目標: 当日中に始値から+1% | 楽天証券ゼロコース対応版"}
             }
             requests.post(webhook_url, json={"embeds": [embed]})
 
@@ -210,3 +284,4 @@ def run_trainer_scan():
 
 if __name__ == "__main__":
     run_trainer_scan()
+
