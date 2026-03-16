@@ -194,17 +194,55 @@
     <div id="refresh-timer">LAST UPDATE: <span id="last-update">NONE</span></div>
 </div>
 
-<script>
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('current-time').innerText = now.toLocaleTimeString('ja-JP');
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
+    <script>
+        const GAS_URL = 'YOUR_GAS_WEBAPP_URL'; // GASのURLをここに反映
 
-    // 本番ではここにAPI(Python/GAS)からデータを受け取る処理を追加
-    // 例: SSE (Server-Sent Events) や FetchAPI
-</script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('current-time').innerText = now.toLocaleTimeString('ja-JP');
+        }
+        setInterval(updateClock, 1000);
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch(GAS_URL);
+                const data = await response.json();
+                
+                const list = document.getElementById('target-list');
+                list.innerHTML = ''; // 一旦クリア
+
+                if (data.length === 0) {
+                    list.innerHTML = '<div class="target-card active"><div class="ticker-info"><h2>NO TARGET</h2><span>待機中...</span></div></div>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = `target-card ${item.status}`;
+                    card.innerHTML = `
+                        <div class="ticker-info">
+                            <span>${item.ticker}</span>
+                            <h2>${item.name || 'TARGET'}</h2>
+                            <div class="status-label">${item.status}</div>
+                        </div>
+                        <div class="profit-display">
+                            <div class="profit-pct">${item.profit > 0 ? '+' : ''}${item.profit}%</div>
+                            <span>始値：${item.entry_p || '---'}円</span>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+                document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+            } catch (e) {
+                console.error("Fetch error:", e);
+            }
+        }
+
+        // 1分おきに自動更新
+        setInterval(fetchStatus, 60000);
+        fetchStatus();
+    </script>
+
 
 </body>
 </html>
