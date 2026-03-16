@@ -120,12 +120,15 @@ def live_patrol():
 if __name__ == "__main__":
     now = datetime.now()
     
-    # 🧼 起動時にまずダッシュボードを掃除する
-    print("🧹 前日の残骸をクリアしています...")
-    send_to_gas({"action": "reset"})
+    # 🧼 スマート・リセット: 朝9時前（準備時間）だけダッシュボードを掃除する
+    if now.hour < 9:
+        print("☀️ 朝の準備時間です。ダッシュボードをリセットなのだ！")
+        send_to_gas({"action": "reset"})
+    else:
+        print("🕒 取引時間中、または夜間です。リセットは行わずに進むのだ。")
     
-    # 起動直後に接続テスト通知
-    test_msg = f"🚀 スナイパー・パトロール、クラウド上で起動したのだ！\n現在時刻: {now.strftime('%H:%M:%S')}\n真っさらな状態で監視を開始するのだ！"
+    # 起動通知
+    test_msg = f"🚀 スナイパー・パトロール、クラウド上で起動したのだ！\n現在時刻: {now.strftime('%H:%M:%S')}\n監視体制に入るのだ！"
     send_notification(test_msg)
     
     # 時間帯によって動作を変える
