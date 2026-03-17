@@ -138,12 +138,6 @@
             border: 1px dashed #64ff64;
         }
 
-        .zundamon-comment img {
-            width: 60px;
-            height: 60px;
-            margin-right: 15px;
-        }
-
         #refresh-timer {
             font-size: 10px;
             opacity: 0.5;
@@ -170,208 +164,7 @@
     </div>
 
     <div id="target-list">
-        <!-- Pythonからここに銘柄が追加される -->
-        <div class="target-card active">
-            <div class="ticker-info">
-                <span>7733.T</span>
-                <h2>OLYMPUS</h2>
-                <div class="status-label">Targeting</div>
-            </div>
-            <div class="profit-display">
-                <div class="profit-pct">+0.00%</div>
-                <span>始値：----円</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="zundamon-comment">
-        <div>
-            <strong>ずんだもんの進言:</strong><br>
-            <span id="zunda-msg">明日の朝8時55分に最初のスキャンを行うのだ！それまでゆっくり休むのだ。</span>
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNIPER AI | 株式スキャニング司令部</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+JP:wght@300;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #050505;
-            --card-bg: rgba(20, 20, 25, 0.8);
-            --gold: #FFD700;
-            --purple: #9400D3;
-            --neon-blue: #00f3ff;
-            --text-color: #e0e0e0;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Noto Sans JP', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
-            min-height: 100vh;
-        }
-
-        header {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
-            letter-spacing: 5px;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
-            margin: 0;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 10px;
-        }
-
-        .status-bar {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--neon-blue);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #market-status {
-            font-size: 0.9em;
-            color: var(--neon-blue);
-        }
-
-        .target-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.5s ease;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .target-card.gold {
-            border: 2px solid var(--gold);
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), var(--card-bg));
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        .target-card.purple {
-            border: 2px solid var(--purple);
-            background: linear-gradient(135deg, rgba(148, 0, 211, 0.2), var(--card-bg));
-            box-shadow: 0 0 20px rgba(148, 0, 211, 0.3);
-        }
-
-        .ticker-info h2 {
-            margin: 0;
-            font-size: 28px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .ticker-info span {
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        .profit-display {
-            text-align: right;
-        }
-
-        .profit-pct {
-            font-size: 32px;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .status-label {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 5px;
-            text-transform: uppercase;
-        }
-
-        .gold .status-label { background: var(--gold); color: black; }
-        .purple .status-label { background: var(--purple); color: white; }
-        .active .status-label { background: var(--neon-blue); color: black; }
-
-        .zundamon-comment {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(100, 255, 100, 0.1);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            border: 1px dashed #64ff64;
-        }
-
-        .zundamon-comment img {
-            width: 60px;
-            height: 60px;
-            margin-right: 15px;
-        }
-
-        #refresh-timer {
-            font-size: 10px;
-            opacity: 0.5;
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-
-<header>
-    <h1 class="logo">SNIPER AI COMMAND</h1>
-</header>
-
-<div class="container">
-    <div class="status-bar">
-        <div>
-            <strong>市場監視状況</strong><br>
-            <span id="market-status">📡 パトロール待機中...</span>
-        </div>
-        <div style="text-align: right;">
-            <span id="current-time">--:--:--</span>
-        </div>
-    </div>
-
-    <div id="target-list">
-        <!-- Pythonからここに銘柄が追加される -->
-        <div class="target-card active">
-            <div class="ticker-info">
-                <span>7733.T</span>
-                <h2>OLYMPUS</h2>
-                <div class="status-label">Targeting</div>
-            </div>
-            <div class="profit-display">
-                <div class="profit-pct">+0.00%</div>
-                <span>始値：----円</span>
-            </div>
-        </div>
+        <!-- ターゲット情報がここに動的に追加される -->
     </div>
 
     <div class="zundamon-comment">
@@ -384,65 +177,64 @@
     <div id="refresh-timer">LAST UPDATE: <span id="last-update">NONE</span></div>
 </div>
 
-    <script>
-        const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2IFiJ1p5VbfbjTkp8zv_36bYFj1GVRk56Mb1E7TCX3RhnpNSQHMamLw7fXaRdbyfN/exec';
+<script>
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2IFiJ1p5VbfbjTkp8zv_36bYFj1GVRk56Mb1E7TCX3RhnpNSQHMamLw7fXaRdbyfN/exec';
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('current-time').innerText = now.toLocaleTimeString('ja-JP');
-        }
-        setInterval(updateClock, 1000);
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('current-time').innerText = now.toLocaleTimeString('ja-JP');
+    }
+    setInterval(updateClock, 1000);
 
-        async function fetchStatus() {
-            try {
-                const response = await fetch(GAS_URL);
-                const data = await response.json();
-                
-                const list = document.getElementById('target-list');
-                const commentText = document.getElementById('zunda-msg'); // Corrected to target the span with id="zunda-msg"
-                list.innerHTML = ''; 
+    async function fetchStatus() {
+        try {
+            const response = await fetch(GAS_URL);
+            const data = await response.json();
+            
+            const list = document.getElementById('target-list');
+            const commentText = document.getElementById('zunda-msg');
+            list.innerHTML = ''; 
 
-                if (data.length === 0) {
-                    list.innerHTML = '<div class="target-card active"><div class="ticker-info"><h2>NO TARGET</h2><span>待機中...</span></div></div>';
-                    commentText.innerText = "ターゲットを索敵中なのだ！明日の朝8時55分に最初のスキャンを行うのだ。";
-                    return;
-                }
-
-                let activeFound = false;
-                data.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = `target-card ${item.status}`;
-                    card.innerHTML = `
-                        <div class="ticker-info">
-                            <span>${item.ticker}</span>
-                            <h2>${item.ticker === '7733.T' ? 'OLYMPUS' : 'TARGET'}</h2>
-                            <div class="status-label">${item.status.toUpperCase()}</div>
-                        </div>
-                        <div class="profit-display">
-                            <div class="profit-pct">${item.profit > 0 ? '+' : ''}${item.profit}%</div>
-                            <span>始値：${item.entry_p || '---'}円</span>
-                        </div>
-                    `;
-                    list.appendChild(card);
-                    if (item.status === 'active' || item.status === 'watching') activeFound = true;
-                });
-
-                if (activeFound) {
-                    commentText.innerText = "じっと監視を続けているのだ。数学的には有利な位置にいるはずなのだ！";
-                } else {
-                    commentText.innerText = "今日の取引は決着がついたのだ！金色に光るまで粘ったのだ。";
-                }
-
-                document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
-            } catch (e) {
-                console.error("Fetch error:", e);
+            if (data.length === 0) {
+                list.innerHTML = '<div class="target-card active"><div class="ticker-info"><h2>NO TARGET</h2><span>待機中...</span></div></div>';
+                commentText.innerText = "ターゲットを索敵中なのだ！明日の朝8時55分に最初のスキャンを行うのだ。";
+                return;
             }
+
+            let activeFound = false;
+            data.forEach(item => {
+                const card = document.createElement('div');
+                card.className = `target-card ${item.status || 'active'}`;
+                card.innerHTML = `
+                    <div class="ticker-info">
+                        <span>${item.ticker}</span>
+                        <h2>${item.ticker === '7733.T' ? 'OLYMPUS' : 'TARGET'}</h2>
+                        <div class="status-label">${(item.status || 'watching').toUpperCase()}</div>
+                    </div>
+                    <div class="profit-display">
+                        <div class="profit-pct">${item.profit > 0 ? '+' : ''}${item.profit}%</div>
+                        <span>ENTRY : ${item.entry_p || '---'}円</span>
+                    </div>
+                `;
+                list.appendChild(card);
+                if (item.status === 'active' || item.status === 'watching') activeFound = true;
+            });
+
+            if (activeFound) {
+                commentText.innerText = "じっと監視を続けているのだ。数学的には有利な位置にいるはずなのだ！";
+            } else {
+                commentText.innerText = "今日の取引は決着がついたのだ！金色に光るまで粘ったのだ。";
+            }
+
+            document.getElementById('last-update').innerText = new Date().toLocaleTimeString();
+        } catch (e) {
+            console.error("Fetch error:", e);
         }
+    }
 
-        setInterval(fetchStatus, 30000);
-        fetchStatus();
-    </script>
-
+    setInterval(fetchStatus, 30000); // 30秒おきに更新
+    fetchStatus();
+</script>
 
 </body>
 </html>
