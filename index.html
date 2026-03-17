@@ -187,17 +187,26 @@
     setInterval(updateClock, 1000);
 
     async function fetchStatus() {
+        const lastUpdateElem = document.getElementById('last-update');
+        const list = document.getElementById('target-list');
+        const commentText = document.getElementById('zunda-msg');
+
         try {
-            const response = await fetch(GAS_URL);
-            const data = await response.json();
+            // 通信開始を記す
+            lastUpdateElem.innerText = "通信中...";
             
-            const list = document.getElementById('target-list');
-            const commentText = document.getElementById('zunda-msg');
+            const response = await fetch(GAS_URL);
+            if (!response.ok) throw new Error('NETWORK ERROR');
+            
+            const data = await response.json();
+            console.log("Data received:", data);
+            
+            lastUpdateElem.innerText = new Date().toLocaleTimeString();
             list.innerHTML = ''; 
 
-            if (data.length === 0) {
+            if (!data || data.length === 0) {
                 list.innerHTML = '<div class="target-card active"><div class="ticker-info"><h2>NO TARGET</h2><span>待機中...</span></div></div>';
-                commentText.innerText = "ターゲットを索敵中なのだ！明日の朝8時55分に最初のスキャンを行うのだ。";
+                commentText.innerText = "ターゲットを索敵中なのだ！次のチェック（5分後）まで待つか、手動でAIを動かしてほしいのだ。";
                 return;
             }
 
@@ -208,7 +217,7 @@
                 card.innerHTML = `
                     <div class="ticker-info">
                         <span>${item.ticker}</span>
-                        <h2>${item.ticker === '7733.T' ? 'OLYMPUS' : 'TARGET'}</h2>
+                        <h2>${item.name || 'TARGET'}</h2>
                         <div class="status-label">${(item.status || 'watching').toUpperCase()}</div>
                     </div>
                     <div class="profit-display">
@@ -227,6 +236,8 @@
             }
         } catch (e) {
             console.error("Fetch error:", e);
+            lastUpdateElem.innerText = "通信エラー(GAS設定？)";
+            commentText.innerText = "エラーが発生したのだ。GASのURLが『全員に公開』になっているか確認してほしいのだ。";
         }
     }
 
