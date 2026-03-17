@@ -85,6 +85,25 @@ def scan_morning_targets():
     send_notification(msg)
     return found_targets
 
+DB_FILE = "trade_database.csv"
+
+def update_db_csv(ticker, profit, status_code, name="TARGET", entry_p="---"):
+    """CSVデータベースを更新"""
+    try:
+        df = pd.read_csv(DB_FILE)
+    except:
+        df = pd.DataFrame(columns=["ticker", "name", "profit", "status_code", "entry_p"])
+    
+    # 既存の銘柄があれば更新、なければ追加
+    if ticker in df["ticker"].values:
+        df.loc[df["ticker"] == ticker, ["profit", "status_code", "name", "entry_p"]] = [profit, status_code, name, entry_p]
+    else:
+        new_row = pd.DataFrame([{"ticker": ticker, "name": name, "profit": profit, "status_code": status_code, "entry_p": entry_p}])
+        df = pd.concat([df, new_row], ignore_index=True)
+    
+    df.to_csv(DB_FILE, index=False)
+    print(f"📁 DB Updated: {ticker} -> Status {status_code} ({profit}%)")
+
 def live_patrol(targets):
     """日中の利確・損切監視"""
     if not targets:
@@ -100,6 +119,8 @@ def live_patrol(targets):
         if now.hour == 15 and now.minute >= 1:
             print("🕒 市場終了。リセット信号を送信します。")
             send_to_gas({"action": "reset"})
+            # CSVもクリア
+            pd.DataFrame(columns=["ticker", "name", "profit", "status_code", "entry_p"]).to_csv(DB_FILE, index=False)
             break
             
         # 市場外(15-翌8時)なら終了
@@ -121,22 +142,25 @@ def live_patrol(targets):
             high_pct = (data["high"] / info["entry_p"] - 1) * 100
             low_pct = (data["low"] / info["entry_p"] - 1) * 100
             
-            # GASダッシュボード更新
-            send_to_gas({
-                "ticker": ticker,
-                "profit": profit_pct,
-                "status": "active"
-            })
+            # GASダッシュボード更新 & CSV更新 (Status 0: Watching)
+            status_code = 0
             
             if high_pct >= config.EXIT_PROFIT_TARGET:
                 send_notification(f"🏆 【利確】{ticker} {config.EXIT_PROFIT_TARGET}%達成！金メダルなのだ！")
-                send_to_gas({"ticker": ticker, "profit": profit_pct, "status": "gold"})
+                status_code = 1
                 info["status"] = "success"
                 
             elif low_pct <= -config.EXIT_STOP_LOSS:
                 send_notification(f"💜 【撤退】{ticker} 損切りライン到達。次があるのだ。")
-                send_to_gas({"ticker": ticker, "profit": profit_pct, "status": "purple"})
+                status_code = 2
                 info["status"] = "fail"
+
+            send_to_gas({
+                "ticker": ticker,
+                "profit": profit_pct,
+                "status": status_code
+            })
+            update_db_csv(ticker, profit_pct, status_code, entry_p=info["entry_p"])
 
         time.sleep(config.SCAN_INTERVAL_MIN * 60)
 
@@ -148,6 +172,7 @@ if __name__ == "__main__":
     # 🧼 スマート・リセット
     if now.hour < 9:
         send_to_gas({"action": "reset"})
+        pd.DataFrame(columns=["ticker", "name", "profit", "status_code", "entry_p"]).to_csv(DB_FILE, index=False)
     
     # 起動通知 (エコモード時は通知を抑える)
     if not once_mode:
@@ -155,22 +180,17 @@ if __name__ == "__main__":
     
     # 仕事の開始
     if now.hour < 15:
-        # 本来はDBやGASからターゲットを引き継ぐべきだが、
-        # 今回は簡易的に「毎回スキャン or 決め打ち」で動作。
-        # (エコモードではここを『保存されたターゲットの読み込み』にするのが理想)
         targets = scan_morning_targets()
         
         # 監視 (エコモードなら1回だけ回す)
         if once_mode:
-            # live_patrolの中身を1回だけ実行するように改造するか、
-            # 簡略化したチェック処理をここに書く
             for ticker, info in targets.items():
                 data = get_current_data(ticker)
                 if not data: continue
-                # (以降、利確・損切・更新ロジックを1回分だけ実行)
-                entry_p = data["open"] # 簡易化
+                entry_p = data["open"]
                 profit_pct = round((data["current"] / entry_p - 1) * 100, 2)
-                send_to_gas({"ticker": ticker, "profit": profit_pct, "status": "active"})
+                send_to_gas({"ticker": ticker, "profit": profit_pct, "status": 0})
+                update_db_csv(ticker, profit_pct, 0, entry_p=entry_p)
             send_notification(f"📡 エコ・パトロール：{len(targets)}銘柄の価格更新を完了したのだ！")
             print("✨ エコ・モード：1回チェック完了。即終了します。")
 
