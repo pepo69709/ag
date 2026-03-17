@@ -164,13 +164,13 @@
     </div>
 
     <div id="target-list">
-        <!-- ターゲット情報がここに動的に追加される -->
+        <!-- ターゲット情報が動的に追加される -->
     </div>
 
     <div class="zundamon-comment">
         <div>
             <strong>ずんだもんの進言:</strong><br>
-            <span id="zunda-msg">明日の朝8時55分に最初のスキャンを行うのだ！それまでゆっくり休むのだ。</span>
+            <span id="zunda-msg">ターゲットを索敵中なのだ！次のチェック（5分後）まで待つか、手動でAIを動かしてほしいのだ。</span>
         </div>
     </div>
 
@@ -192,15 +192,11 @@
         const commentText = document.getElementById('zunda-msg');
 
         try {
-            // 通信開始を記す
             lastUpdateElem.innerText = "通信中...";
-            
             const response = await fetch(GAS_URL);
             if (!response.ok) throw new Error('NETWORK ERROR');
             
             const data = await response.json();
-            console.log("Data received:", data);
-            
             lastUpdateElem.innerText = new Date().toLocaleTimeString();
             list.innerHTML = ''; 
 
