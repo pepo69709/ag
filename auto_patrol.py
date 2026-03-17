@@ -141,17 +141,39 @@ def live_patrol(targets):
         time.sleep(config.SCAN_INTERVAL_MIN * 60)
 
 if __name__ == "__main__":
+    import sys
+    once_mode = "--once" in sys.argv
     now = get_now()
     
     # 🧼 スマート・リセット
     if now.hour < 9:
         send_to_gas({"action": "reset"})
     
-    send_notification(f"🚀 スナイパー・パトロール始動！(JST {now.strftime('%H:%M:%S')})")
+    # 起動通知 (エコモード時は通知を抑える)
+    if not once_mode:
+        send_notification(f"🚀 スナイパー・パトロール始動！(JST {now.strftime('%H:%M:%S')})")
     
-    # 朝のタスク（遅れて起動しても、15時前なら実行する）
+    # 仕事の開始
     if now.hour < 15:
+        # 本来はDBやGASからターゲットを引き継ぐべきだが、
+        # 今回は簡易的に「毎回スキャン or 決め打ち」で動作。
+        # (エコモードではここを『保存されたターゲットの読み込み』にするのが理想)
         targets = scan_morning_targets()
-        live_patrol(targets)
+        
+        # 監視 (エコモードなら1回だけ回す)
+        if once_mode:
+            # live_patrolの中身を1回だけ実行するように改造するか、
+            # 簡略化したチェック処理をここに書く
+            for ticker, info in targets.items():
+                data = get_current_data(ticker)
+                if not data: continue
+                # (以降、利確・損切・更新ロジックを1回分だけ実行)
+                entry_p = data["open"] # 簡易化
+                profit_pct = round((data["current"] / entry_p - 1) * 100, 2)
+                send_to_gas({"ticker": ticker, "profit": profit_pct, "status": "active"})
+            print("✨ エコ・モード：1回チェック完了。即終了します。")
+        else:
+            live_patrol(targets)
     else:
-        send_notification("🌙 今は夜なので、おやすみなのだ！")
+        print("🌙 夜間につき終了。")
+

@@ -1,30 +1,29 @@
-name: Sniper AI Cloud Patrol
+name: Sniper AI Cloud Patrol (Eco Mode)
 
 on:
   schedule:
-    # 日本時間 月曜〜金曜 08:50 (世界標準時 日曜〜木曜 23:50)
+    # 5分おきに起動して一瞬で終わる (日本時間 9:00〜15:10)
+    # 0,5,10...55分に起動。月曜〜金曜(JST) = 日曜〜木曜(UTC)
+    - cron: '*/5 0-6 * * SUN-THU'
+    # 朝のスキャン用 (日本時間 8:50)
     - cron: '50 23 * * SUN-THU'
-  workflow_dispatch: # 手動実行も可能にする
+  workflow_dispatch:
 
 jobs:
   patrol:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
+      - uses: actions/checkout@v3
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install yfinance pandas numpy scikit-learn joblib lightgbm requests
-
+          pip install yfinance pandas numpy joblib requests
       - name: Run Sniper Patrol
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           GAS_WEBHOOK_URL: ${{ secrets.GAS_WEBHOOK_URL }}
-        run: python auto_patrol.py
+        run: python auto_patrol.py --once
