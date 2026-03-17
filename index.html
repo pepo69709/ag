@@ -202,7 +202,13 @@
             list.innerHTML = ''; 
 
             if (!data || data.length === 0) {
-                list.innerHTML = '<div class="target-card active"><div class="ticker-info"><h2>NO TARGET</h2><span>待機中...</span></div></div>';
+                list.innerHTML = `
+                    <div class="target-card">
+                        <div class="ticker">NO TARGET</div>
+                        <div class="name">待機中...</div>
+                         <div class="profit">--%</div>
+                    </div>
+                `;
                 commentText.innerText = "ターゲットを索敵中なのだ！次のチェック（5分後）まで待つか、手動でAIを動かしてほしいのだ。";
                 return;
             }
@@ -210,20 +216,34 @@
             let activeFound = false;
             data.forEach(item => {
                 const card = document.createElement('div');
-                card.className = `target-card ${item.status || 'active'}`;
+                
+                // --- 🎨 【新設計】ステータスコードによる色分け ---
+                let statusClass = 'active'; // デフォルト(0)
+                let statusLabel = 'WATCHING';
+                
+                if (item.status == 1 || item.status == 'gold') {
+                    statusClass = 'gold';
+                    statusLabel = 'PROFIT TARGET';
+                } else if (item.status == 2 || item.status == 'purple') {
+                    statusClass = 'purple';
+                    statusLabel = 'STOP LOSS';
+                }
+                
+                card.className = `target-card ${statusClass}`;
+                
+                // 損益の単純化（小数第2位、必ず + or - をつける）
+                const displayProfit = (item.profit > 0 ? '+' : '') + parseFloat(item.profit).toFixed(2);
+                
                 card.innerHTML = `
-                    <div class="ticker-info">
-                        <span>${item.ticker}</span>
-                        <h2>${item.name || 'TARGET'}</h2>
-                        <div class="status-label">${(item.status || 'watching').toUpperCase()}</div>
-                    </div>
-                    <div class="profit-display">
-                        <div class="profit-pct">${item.profit > 0 ? '+' : ''}${item.profit}%</div>
-                        <span>ENTRY : ${item.entry_p || '---'}円</span>
-                    </div>
+                    <div class="ticker">${item.ticker}</div>
+                    <div class="name">${item.name || 'TARGET'}</div>
+                    <div class="status-badge">${statusLabel}</div>
+                    <div class="profit">${displayProfit}%</div>
+                    <div class="entry-price">ENTRY : ${item.entry_p || '---'}円</div>
                 `;
                 list.appendChild(card);
-                if (item.status === 'active' || item.status === 'watching') activeFound = true;
+                
+                if (statusClass === 'active') activeFound = true;
             });
 
             if (activeFound) {
@@ -231,6 +251,7 @@
             } else {
                 commentText.innerText = "今日の取引は決着がついたのだ！金色に光るまで粘ったのだ。";
             }
+
         } catch (e) {
             console.error("Fetch error:", e);
             lastUpdateElem.innerText = "通信エラー: " + (e.message || "Unknown");
