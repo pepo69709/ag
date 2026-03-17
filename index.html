@@ -178,7 +178,8 @@
 </div>
 
 <script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbz2IFiJ1p5VbfbjTkp8zv_36bYFj1GVRk56Mb1E7TCX3RhnpNSQHMamLw7fXaRdbyfN/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxLbrI9krIfgyjxMeVCwhtELA2VrBK9w5QjbNT--6xsLd7L2Jl2dMBbx_eCUGrDWSmv/exec';
+
 
     function updateClock() {
         const now = new Date();
@@ -232,9 +233,15 @@
             }
         } catch (e) {
             console.error("Fetch error:", e);
-            lastUpdateElem.innerText = "通信エラー(GAS設定？)";
-            commentText.innerText = "エラーが発生したのだ。GASのURLが『全員に公開』になっているか確認してほしいのだ。";
+            lastUpdateElem.innerText = "通信エラー: " + (e.message || "Unknown");
+            commentText.innerHTML = `
+                <span style="color: #ffaaaa;">エラーが発生したのだ。ブラウザがGoogleへの通信をブロックしている可能性があるのだ。</span><br><br>
+                <strong>【診断用リンク】</strong><br>
+                <a href="${GAS_URL}" target="_blank" style="color: var(--neon-blue); text-decoration: underline;">ここをクリックして、新しいタブでJSONデータ（ [] または銘柄リスト ）が表示されるか確認してほしいのだ。</a><br><br>
+                ※もしGoogleのエラー画面が出たら、GASの『デプロイ』をやり直す必要があるのだ。
+            `;
         }
+
     }
 
     setInterval(fetchStatus, 30000); // 30秒おきに更新
