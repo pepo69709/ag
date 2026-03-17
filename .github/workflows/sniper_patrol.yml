@@ -2,8 +2,8 @@ name: Sniper AI Cloud Patrol
 
 on:
   schedule:
-    # 日本時間 08:50 (UTC 23:50) に毎日（月〜金）自動起動
-    - cron: '50 23 * * 0-4'
+    # 日本時間 月曜〜金曜 08:50 (世界標準時 日曜〜木曜 23:50)
+    - cron: '50 23 * * SUN-THU'
   workflow_dispatch: # 手動実行も可能にする
 
 jobs:
