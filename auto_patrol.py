@@ -171,7 +171,9 @@ if __name__ == "__main__":
                 entry_p = data["open"] # 簡易化
                 profit_pct = round((data["current"] / entry_p - 1) * 100, 2)
                 send_to_gas({"ticker": ticker, "profit": profit_pct, "status": "active"})
+            send_notification(f"📡 エコ・パトロール：{len(targets)}銘柄の価格更新を完了したのだ！")
             print("✨ エコ・モード：1回チェック完了。即終了します。")
+
         else:
             live_patrol(targets)
     else:
