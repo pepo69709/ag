@@ -1,42 +1,85 @@
 import yfinance as yf
 import pandas as pd
-import os
-import requests
+import time
 from datetime import datetime
-import config
+from core import TICKER_LIST, get_indicators, load_weights, calculate_score, setup_terminal
 
-DB_FILE = "database.csv"
-GAS_URL = os.environ.get("GAS_WEBHOOK_URL") or config.GAS_WEBHOOK_URL
+# --- 🏹 Sniper AI: Scoring Engine (V1) ---
+# 歴史的検証に基づいたロジックを core.py に集約し、シンプルかつ堅牢に進化したスキャナー。
 
-def update_db(ticker, profit, status, name="TARGET", entry="---"):
-    df = pd.read_csv(DB_FILE)
-    if ticker in df["ticker"].values:
-        df.loc[df["ticker"] == ticker, ["profit", "status", "name", "entry_p"]] = [profit, status, name, entry]
-    else:
-        new_row = pd.DataFrame([{"ticker": ticker, "name": name, "profit": profit, "status": status, "entry_p": entry}])
-        df = pd.concat([df, new_row], ignore_index=True)
-    df.to_csv(DB_FILE, index=False)
+def fetch_market_data():
+    """地合い判定 (日経225の200日線)"""
+    try:
+        n225 = yf.download("^N225", period="1y", progress=False)
+        if isinstance(n225.columns, pd.MultiIndex): n225.columns = n225.columns.get_level_values(0)
+        n225_ma200 = n225['Close'].rolling(200).mean().iloc[-1]
+        n225_curr = n225['Close'].iloc[-1]
+        is_bull = n225_curr > n225_ma200
+        return is_bull, n225_curr, n225_ma200
+    except:
+        return True, 0, 0
 
-def run_patrol():
-    print("🚀 Sniper AI: Starting Patrol...")
-    for ticker in config.WATCH_LIST:
+def main():
+    setup_terminal()
+    weights_all = load_weights()
+    is_bull, n225_curr, n225_ma200 = fetch_market_data()
+    regime = "BULL" if is_bull else "BEAR"
+    weights = weights_all["regime_bull"] if is_bull else weights_all["regime_bear"]
+
+    print(f"🏹 Sniper AI: Systems Online. (Bulk Scanning Mode)")
+    print(f"Market Status: {'📈 BULL' if is_bull else '📉 BEAR'} (Nikkei: {n225_curr:,.0f} / MA200: {n225_ma200:,.0f})")
+
+    # 🌍 一括ダウンロード (1分足: リアルタイム用 & 日足: 指標計算用)
+    print(f"📥 Fetching bulk market intelligence...")
+    all_now = yf.download(TICKER_LIST, period="1d", interval="1m", progress=False, group_by='ticker')
+    all_hist = yf.download(TICKER_LIST, period="3mo", interval="1d", progress=False, group_by='ticker')
+
+    results = []
+    for ticker in TICKER_LIST:
         try:
-            data = yf.Ticker(ticker).history(period="1d")
-            if data.empty: continue
+            # ヒストリカルデータの抽出
+            if ticker not in all_hist.columns.levels[0]: continue
+            df = all_hist[ticker].copy().dropna()
+            if df.empty or len(df) < 30: continue
             
-            curr = data["Close"].iloc[-1]
-            open_p = data["Open"].iloc[0]
-            profit = round((curr / open_p - 1) * 100, 2)
+            # リアルタイム価格の抽出 (最新の1分足)
+            if ticker not in all_now.columns.levels[0]: continue
+            df_now = all_now[ticker].copy().dropna()
+            if not df_now.empty:
+                latest_price = df_now['Close'].iloc[-1]
+                # 指標計算用に最後の一行を最新値に更新 (暫定的な調整)
+                df.iloc[-1, df.columns.get_loc('Close')] = latest_price
             
-            # Simple Logic
-            status = 0
-            if profit >= config.EXIT_PROFIT_TARGET: status = 1
-            elif profit <= -config.EXIT_STOP_LOSS: status = 2
+            df = get_indicators(df)
+            row = df.iloc[-1]
+            curr_price = round(row['Close'].item(), 1)
             
-            update_db(ticker, profit, status, entry=open_p)
-            print(f"✅ {ticker}: {profit}% (Status: {status})")
+            # 共通ロジックでスコア計算
+            score = calculate_score(ticker, row, weights, regime)
+            
+            # 星の数に変換
+            stars = "⭐" * (1 if score < 40 else 2 if score < 55 else 3 if score < 70 else 4 if score < 85 else 5)
+            
+            results.append({
+                "ticker": ticker,
+                "name": ticker,
+                "price": curr_price,
+                "rsi": round(row['rsi'].item(), 1),
+                "kairi": round(row['kairi'].item(), 1),
+                "sigma": round(row['sigma'].item(), 2),
+                "score": score,
+                "stars": stars,
+                "update_time": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+            print(f"Scanned {ticker}: Price={curr_price} Score={score}")
         except Exception as e:
-            print(f"❌ Error {ticker}: {e}")
+            # print(f"Skipping {ticker} due to error: {e}")
+            pass
+
+    # 保存
+    out_df = pd.DataFrame(results).sort_values(by="score", ascending=False)
+    out_df.to_csv("database.csv", index=False, encoding='utf-8-sig')
+    print(f"🏹 Scan Complete. Results saved to database.csv")
 
 if __name__ == "__main__":
-    run_patrol()
+    main()

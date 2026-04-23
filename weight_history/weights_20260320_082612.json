@@ -1,0 +1,19 @@
+{
+    "last_updated": "2026-03-19",
+    "regime_bull": {
+        "rsi_weight": 0.19,
+        "kairi_weight": 0.2,
+        "vol_weight": 0.61,
+        "sigma_filter": 0.99
+    },
+    "regime_bear": {
+        "rsi_weight": 0.6,
+        "kairi_weight": 0.3,
+        "vol_weight": 0.1,
+        "sigma_filter": 0.8
+    },
+    "metadata": {
+        "last_trained": "2026-03-20 08:26",
+        "training_regime": "VOLATILE"
+    }
+}

@@ -1,5 +1,0 @@
-discord.py
-yfinance
-pandas
-requests
-numpy

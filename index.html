@@ -1,273 +1,255 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SNIPER AI | 株式スキャニング司令部</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+JP:wght@300;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #050505;
-            --card-bg: rgba(20, 20, 25, 0.8);
-            --gold: #FFD700;
-            --purple: #9400D3;
-            --neon-blue: #00f3ff;
-            --text-color: #e0e0e0;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Noto Sans JP', sans-serif;
-            margin: 0;
-            overflow-x: hidden;
-            background-image: radial-gradient(circle at 50% 50%, #1a1a2e 0%, #050505 100%);
-            min-height: 100vh;
-        }
-
-        header {
-            padding: 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .logo {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
-            letter-spacing: 5px;
-            color: var(--neon-blue);
-            text-shadow: 0 0 10px var(--neon-blue);
-            margin: 0;
-        }
-
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 10px;
-        }
-
-        .status-bar {
-            background: var(--card-bg);
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 4px solid var(--neon-blue);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        #market-status {
-            font-size: 0.9em;
-            color: var(--neon-blue);
-        }
-
-        .target-card {
-            background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.5s ease;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .target-card.gold {
-            border: 2px solid var(--gold);
-            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), var(--card-bg));
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
-        }
-
-        .target-card.purple {
-            border: 2px solid var(--purple);
-            background: linear-gradient(135deg, rgba(148, 0, 211, 0.2), var(--card-bg));
-            box-shadow: 0 0 20px rgba(148, 0, 211, 0.3);
-        }
-
-        .ticker-info h2 {
-            margin: 0;
-            font-size: 28px;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .ticker-info span {
-            font-size: 14px;
-            opacity: 0.7;
-        }
-
-        .profit-display {
-            text-align: right;
-        }
-
-        .profit-pct {
-            font-size: 32px;
-            font-weight: bold;
-            font-family: 'Orbitron', sans-serif;
-        }
-
-        .status-label {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 5px;
-            text-transform: uppercase;
-        }
-
-        .gold .status-label { background: var(--gold); color: black; }
-        .purple .status-label { background: var(--purple); color: white; }
-        .active .status-label { background: var(--neon-blue); color: black; }
-
-        .zundamon-comment {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(100, 255, 100, 0.1);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            border: 1px dashed #64ff64;
-        }
-
-        #refresh-timer {
-            font-size: 10px;
-            opacity: 0.5;
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
+    <title>Sniper AI | Command Center</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 </head>
+
 <body>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="logo">Sniper AI <span style="font-size: 0.6rem; vertical-align: middle;">V3.0</span></div>
+            <div class="market-status">
+                <span class="status-badge bull" id="regime-badge">📈 BULL MARKET</span>
+                <span class="status-badge" id="n225-val">N225: 53,373</span>
+                <span id="sync-status" style="font-size: 0.7rem; color: var(--text-dim); margin-left:10px;">LATEST SCAN: --:--</span>
+                <button onclick="loadData()" class="refresh-btn">🔄 REFRESH</button>
+            </div>
+        </header>
 
-<header>
-    <h1 class="logo">SNIPER AI COMMAND</h1>
-</header>
+        <!-- LEFT NAV: AI SCAN RESULTS -->
+        <nav id="ticker-list">
+            <div class="section-title">AI Scanned Targets</div>
+            <!-- Cards will be injected by JS -->
+        </nav>
 
-<div class="container">
-    <div class="status-bar">
-        <div>
-            <strong>市場監視状況</strong><br>
-            <span id="market-status">📡 パトロール待機中...</span>
-        </div>
-        <div style="text-align: right;">
-            <span id="current-time">--:--:--</span>
-        </div>
+        <!-- MAIN VIEW: ANALYTICS -->
+        <main>
+            <div id="detail-pane" class="detail-view">
+                <div class="section-title">Asset Insights</div>
+                <h1 id="detail-symbol">1801.T</h1>
+                <div class="price-main">¥ 5,420</div>
+
+                <div class="grid-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">RSI (14)</div>
+                        <div class="stat-value" id="val-rsi">38.2</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Volatility (Sigma)</div>
+                        <div class="stat-value" id="val-sigma">1.82%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Deviation (Kairi)</div>
+                        <div class="stat-value" id="val-kairi">-2.1%</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 40px;">
+                    <button onclick="recordTrade()">この銘柄をスナイプ（記録保存）</button>
+                </div>
+            </div>
+        </main>
+
+        <!-- RIGHT SIDEBAR: PORTFOLIO -->
+        <aside>
+            <div class="section-title">Active Portfolio</div>
+            <div id="portfolio-list">
+                <div class="portfolio-card">
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: bold;">Mitsubishi Corp (8058)</span>
+                        <span style="color: var(--accent-green);">+2.4%</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim);">Avg: ¥ 3,120 | Last: ¥ 3,195</div>
+                </div>
+            </div>
+
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
+                    <span>Total Value (評価額)</span>
+                    <span id="total-equity-val" style="color: var(--accent-gold); font-weight: bold;">¥ 0</span>
+                </div>
+            </div>
+        </aside>
     </div>
 
-    <div id="target-list">
-        <!-- ターゲット情報が動的に追加される -->
-    </div>
+    <script>
+        let portfolioData = [];
+        let currentData = [];
 
-    <div class="zundamon-comment">
-        <div>
-            <strong>ずんだもんの進言:</strong><br>
-            <span id="zunda-msg">ターゲットを索敵中なのだ！次のチェック（5分後）まで待つか、手動でAIを動かしてほしいのだ。</span>
-        </div>
-    </div>
+        async function loadData() {
+            try {
+                // Load Targets
+                const response = await fetch('database.csv');
+                const csvText = await response.text();
+                const lines = csvText.trim().split('\n');
+                const headers = lines[0].split(',');
 
-    <div id="refresh-timer">LAST UPDATE: <span id="last-update">NONE</span></div>
-</div>
+                currentData = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    let obj = {};
+                    headers.forEach((header, i) => obj[header.trim()] = values[i]);
+                    return obj;
+                });
 
-<script>
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbzfv_JZLOO97QrHEcDljaizbLD8hCE-EAyv8qgqWqBrLSia2a3at4RFqc16e31wbgvY/exec';
+                // Load Portfolio
+                await loadPortfolio();
 
+                // Update Sync Status with the CSV's timestamp
+                const latestTime = currentData.length > 0 ? currentData[0].update_time : "Unknown";
+                document.getElementById('sync-status').innerText = `LATEST SCAN: ${latestTime}`;
+                document.getElementById('sync-status').style.color = "#4fd1c5"; // Greenish
+                setTimeout(() => { document.getElementById('sync-status').style.color = "var(--text-dim)"; }, 1000);
 
-    function updateClock() {
-        const now = new Date();
-        document.getElementById('current-time').innerText = now.toLocaleTimeString('ja-JP');
-    }
-    setInterval(updateClock, 1000);
+                // 🔥 Restore missing rendering calls
+                renderTickerList(currentData);
+                if (currentData.length > 0) {
+                    showDetail(currentData[0].ticker);
+                }
+            } catch (e) {
+                console.error("Error loading CSV:", e);
+            }
+        }
 
-    async function fetchStatus() {
-        const lastUpdateElem = document.getElementById('last-update');
-        const list = document.getElementById('target-list');
-        const commentText = document.getElementById('zunda-msg');
+        async function loadPortfolio() {
+            try {
+                const response = await fetch('portfolio.csv');
+                const csvText = await response.text();
+                const lines = csvText.trim().split('\n');
+                const headers = lines[0].split(',');
 
-        try {
-            lastUpdateElem.innerText = "通信中...";
-            const response = await fetch(GAS_URL);
-            if (!response.ok) throw new Error('NETWORK ERROR');
-            
-            const data = await response.json();
-            lastUpdateElem.innerText = new Date().toLocaleTimeString();
-            list.innerHTML = ''; 
+                portfolioData = lines.slice(1).map(line => {
+                    const values = line.split(',');
+                    let obj = {};
+                    headers.forEach((header, i) => obj[header] = values[i]);
+                    return obj;
+                });
 
-            if (!data || data.length === 0) {
-                list.innerHTML = `
-                    <div class="target-card">
-                        <div class="ticker">NO TARGET</div>
-                        <div class="name">待機中...</div>
-                         <div class="profit">--%</div>
+                renderPortfolio();
+            } catch (e) {
+                console.log("No portfolio found.");
+            }
+        }
+
+        function renderPortfolio() {
+            const list = document.getElementById('portfolio-list');
+            list.innerHTML = '';
+            let totalEquity = 0;
+
+            portfolioData.forEach(item => {
+                const current = currentData.find(d => d.ticker === item.ticker);
+                const curPrice = current ? parseFloat(current.price) : parseFloat(item.entry_price);
+                const entryPrice = parseFloat(item.entry_price);
+                const diff = ((curPrice / entryPrice - 1) * 100).toFixed(1);
+                const color = diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+
+                totalEquity += curPrice * parseInt(item.quantity);
+
+                const card = document.createElement('div');
+                card.className = 'portfolio-card';
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold;">${item.ticker}</span>
+                        <div style="text-align: right;">
+                            <span style="color: ${color}; display: block; font-weight: 800;">${diff > 0 ? '+' : ''}${diff}%</span>
+                            <button onclick="sellPosition('${item.ticker}')" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 5px; background: var(--accent-red); color: white; width: auto;">SELL</button>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 5px;">
+                        Avg: ¥ ${entryPrice.toLocaleString()} | Last: ¥ ${curPrice.toLocaleString()}
                     </div>
                 `;
-                commentText.innerText = "ターゲットを索敵中なのだ！次のチェック（5分後）まで待つか、手動でAIを動かしてほしいのだ。";
-                return;
-            }
-
-            let activeFound = false;
-            data.forEach(item => {
-                const card = document.createElement('div');
-                
-                // --- 🎨 【新設計】ステータスコードによる色分け ---
-                let statusClass = 'active'; // デフォルト(0)
-                let statusLabel = 'WATCHING';
-                
-                if (item.status == 1 || item.status == 'gold') {
-                    statusClass = 'gold';
-                    statusLabel = 'PROFIT TARGET';
-                } else if (item.status == 2 || item.status == 'purple') {
-                    statusClass = 'purple';
-                    statusLabel = 'STOP LOSS';
-                }
-                
-                card.className = `target-card ${statusClass}`;
-                
-                // 損益の単純化（小数第2位、必ず + or - をつける）
-                const displayProfit = (item.profit > 0 ? '+' : '') + parseFloat(item.profit).toFixed(2);
-                
-                card.innerHTML = `
-                    <div class="ticker">${item.ticker}</div>
-                    <div class="name">${item.name || 'TARGET'}</div>
-                    <div class="status-badge">${statusLabel}</div>
-                    <div class="profit">${displayProfit}%</div>
-                    <div class="entry-price">ENTRY : ${item.entry_p || '---'}円</div>
-                `;
                 list.appendChild(card);
-                
-                if (statusClass === 'active') activeFound = true;
             });
 
-            if (activeFound) {
-                commentText.innerText = "じっと監視を続けているのだ。数学的には有利な位置にいるはずなのだ！";
-            } else {
-                commentText.innerText = "今日の取引は決着がついたのだ！金色に光るまで粘ったのだ。";
-            }
-
-        } catch (e) {
-            console.error("Fetch error:", e);
-            lastUpdateElem.innerText = "通信エラー: " + (e.message || "Unknown");
-            commentText.innerHTML = `
-                <span style="color: #ffaaaa;">エラーが発生したのだ。ブラウザがGoogleへの通信をブロックしている可能性があるのだ。</span><br><br>
-                <strong>【診断用リンク】</strong><br>
-                <a href="${GAS_URL}" target="_blank" style="color: var(--neon-blue); text-decoration: underline;">ここをクリックして、新しいタブでJSONデータ（ [] または銘柄リスト ）が表示されるか確認してほしいのだ。</a><br><br>
-                ※もしGoogleのエラー画面が出たら、GASの『デプロイ』をやり直す必要があるのだ。
-            `;
+            document.getElementById('total-equity-val').innerText = `¥ ${totalEquity.toLocaleString()}`;
         }
 
-    }
+        async function sellPosition(ticker) {
+            if (!confirm(`${ticker} を売却（リストから削除）しますか？`)) return;
 
-    setInterval(fetchStatus, 30000); // 30秒おきに更新
-    fetchStatus();
-</script>
+            const response = await fetch('/api/sell', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ ticker })
+            });
 
+            if (response.ok) {
+                alert(`${ticker} の売却を記録しました！`);
+                loadPortfolio();
+            }
+        }
+
+        function renderTickerList(data) {
+            const list = document.getElementById('ticker-list');
+            list.innerHTML = '<div class="section-title">AI Scanned Targets</div>';
+
+            data.forEach(item => {
+                const isDefense = ["1357.T", "1459.T"].includes(item.ticker);
+                const card = document.createElement('div');
+                card.className = 'ticker-card';
+                card.onclick = () => showDetail(item.ticker);
+                card.id = `card-${item.ticker}`;
+                card.innerHTML = `
+                    <div class="ticker-header">
+                        <span class="ticker-symbol">${item.ticker} ${isDefense ? '<span class="defense-label">🛡️DEFENSE</span>' : ''}</span>
+                        <span class="ticker-score">Score: ${item.score}</span>
+                    </div>
+                    <div class="ticker-stars">${item.stars}</div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function showDetail(ticker) {
+            const item = currentData.find(d => d.ticker === ticker);
+            if (!item) return;
+
+            const isDefense = ["1357.T", "1459.T"].includes(item.ticker);
+
+            // Update Active State
+            document.querySelectorAll('.ticker-card').forEach(c => c.classList.remove('active'));
+            document.getElementById(`card-${ticker}`).classList.add('active');
+
+            // Update Pane
+            document.getElementById('detail-symbol').innerHTML = `${item.ticker} ${isDefense ? '<span class="status-badge" style="border-color: var(--accent-gold); color: var(--accent-gold); vertical-align: middle; margin-left: 15px;">🛡️ BEAR DEFENSE</span>' : ''}`;
+            document.querySelector('.price-main').innerText = `¥ ${item.price}`;
+            document.getElementById('val-rsi').innerText = item.rsi;
+            document.getElementById('val-sigma').innerText = `${item.sigma}%`;
+            document.getElementById('val-kairi').innerText = `${item.kairi}%`;
+        }
+
+        async function recordTrade() {
+            const ticker = document.getElementById('detail-symbol').innerText.split(' ')[0];
+            const price = document.querySelector('.price-main').innerText.replace('¥ ', '').replace(',', '');
+            const quantity = prompt(`${ticker} の購入株数を入力してください（例: 100）`, "100");
+
+            if (!quantity) return;
+
+            const response = await fetch('/api/record', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticker, price, quantity })
+            });
+
+            if (response.ok) {
+                alert(`${ticker} をスナイプ記録に保存しました！なのだ！🥇🦾✨`);
+                loadPortfolio(); // Reload UI
+            } else {
+                alert("エラーが発生しました。");
+            }
+        }
+
+        loadData();
+        setInterval(loadData, 30000); // 30秒ごとに自動更新に変更！
+    </script>
 </body>
+
 </html>
