@@ -1,0 +1,28 @@
+name: Sniper AI Cloud Scan
+
+on:
+  schedule:
+    # 平日(月-金)の日本時間 9:00-15:00 (UTC 0:00-6:00) に1時間おきに実行
+    - cron: '0 0-6 * * 1-5'
+  workflow_dispatch: # 手動実行ボタンも追加
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: ambassadors/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install yfinance pandas requests
+
+      - name: Run Sniper
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python cloud_sniper.py

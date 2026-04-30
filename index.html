@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sniper AI | Command Center</title>
+    <title>Sniper AI | Rule-Based Singularity</title>
     <link rel="stylesheet" href="index.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,196 +15,128 @@
     <div class="container">
         <!-- HEADER -->
         <header>
-            <div class="logo">Sniper AI <span style="font-size: 0.6rem; vertical-align: middle;">V3.0</span></div>
+            <div class="logo">Sniper AI <span style="font-size: 0.6rem; vertical-align: middle; color: var(--accent-red);">V9.1 [RULE-BASED]</span></div>
+            <div class="market-info">
+                <span>Regime: <span id="market-regime">--</span></span>
+                <span style="margin-left: 20px; color: var(--text-dim);">Live: <span id="last-update" style="color: var(--accent-green);">--</span></span>
+            </div>
             <div class="market-status">
-                <span class="status-badge bull" id="regime-badge">📈 BULL MARKET</span>
-                <span class="status-badge" id="n225-val">N225: 53,373</span>
-                <span id="sync-status" style="font-size: 0.7rem; color: var(--text-dim); margin-left:10px;">LATEST SCAN: --:--</span>
                 <button onclick="loadData()" class="refresh-btn">🔄 REFRESH</button>
             </div>
         </header>
 
-        <!-- LEFT NAV: AI SCAN RESULTS -->
+        <!-- LEFT NAV -->
         <nav id="ticker-list">
-            <div class="section-title">AI Scanned Targets</div>
-            <!-- Cards will be injected by JS -->
+            <div class="section-title">Strict Rule Targets</div>
+            <div id="targets-container"></div>
         </nav>
 
-        <!-- MAIN VIEW: ANALYTICS -->
+        <!-- MAIN VIEW -->
         <main>
             <div id="detail-pane" class="detail-view">
-                <div class="section-title">Asset Insights</div>
-                <h1 id="detail-symbol">1801.T</h1>
-                <div class="price-main">¥ 5,420</div>
-
-                <div class="grid-stats">
-                    <div class="stat-box">
-                        <div class="stat-label">RSI (14)</div>
-                        <div class="stat-value" id="val-rsi">38.2</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Volatility (Sigma)</div>
-                        <div class="stat-value" id="val-sigma">1.82%</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-label">Deviation (Kairi)</div>
-                        <div class="stat-value" id="val-kairi">-2.1%</div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <div class="section-title">Mechanical Command</div>
+                        <div style="display: flex; align-items: center; gap: 20px;">
+                            <h1 id="val-rule" style="font-size: 2.5rem; color: var(--accent-red); margin: 10px 0;">SKIP</h1>
+                            <div id="rule-evidence" style="display: flex; gap: 8px;"></div>
+                        </div>
+                        <h2 id="detail-symbol" style="cursor: pointer;" onclick="copyToClipboard(this.innerText)">----</h2>
+                        <div id="detail-price" style="font-size: 1.5rem; font-weight: 800; color: var(--text-dim);">¥ ----</div>
                     </div>
                 </div>
 
-                <div style="margin-top: 40px;">
-                    <button onclick="recordTrade()">この銘柄をスナイプ（記録保存）</button>
+                <div class="grid-stats">
+                    <div class="stat-box"><div class="stat-label">Confidence</div><div class="stat-value" id="val-confidence" style="color:var(--accent-gold);">--%</div></div>
+                    <div class="stat-box"><div class="stat-label">True EV</div><div class="stat-value" id="val-ev" style="color:var(--accent-green);">--%</div></div>
+                    <div class="stat-box"><div class="stat-label">Kelly Size</div><div class="stat-value" id="val-kelly" style="color:var(--accent-gold);">--%</div></div>
+                    <div class="stat-box"><div class="stat-label">VCP Score</div><div class="stat-value" id="val-pattern" style="color:var(--accent-gold);">--</div></div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: rgba(0,255,255,0.05); border: 1px solid cyan; border-radius: 8px;">
+                    <div class="section-title" style="margin-bottom: 10px; color: cyan;">⚡ LIVE PRICE RECALC (V15.5)</div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" id="live-price-input" placeholder="現在値入力..." style="flex: 1; background: #000; color: #fff; border: 1px solid #333; padding: 10px; border-radius: 4px;">
+                        <button onclick="recalcEV()" style="background: cyan; color: #000; font-weight: 800; padding: 10px 20px; border-radius: 4px;">CALC</button>
+                    </div>
+                    <div id="recalc-result" style="margin-top: 15px; font-size: 0.9rem; display: none;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span>Live EV: <span id="live-ev-val" style="font-weight: 800;">--%</span></span>
+                            <span>Freshness: <span id="live-decay-val">--</span></span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Gap: <span id="live-gap-val">--%</span></span>
+                        </div>
+                        <div id="live-verdict" style="text-align: center; margin-top: 10px; font-size: 1.2rem; font-weight: 800; border-radius: 4px; padding: 10px; letter-spacing: 1px;">WAIT</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; padding: 20px; background: rgba(0,0,0,0.3); border: 2px solid var(--accent-red); border-radius: 8px;">
+                    <div class="section-title" style="margin-bottom: 15px; color: var(--accent-red);">⚠️ RULE VIOLATION CHECK</div>
+                    <div id="checklist" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.8rem; color: var(--text-dim);">
+                        <div>[ ] 感情の排除</div><div>[ ] Kelly遵守</div><div>[ ] スリッページ</div><div>[ ] 損切: ¥ <span id="val-stoploss-inline">--</span></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 30px; display: flex; gap: 15px;">
+                    <button onclick="recordTrade()" style="flex: 2; height: 60px; font-size: 1.2rem; font-weight: 800; background: var(--accent-red); color: white;">EXECUTE BY RULE</button>
+                    <button onclick="copyOrderDetails()" style="flex: 1; background: rgba(0,255,255,0.1); border: 1px solid cyan; color: cyan; font-size: 0.7rem;">注文内容をコピー</button>
                 </div>
             </div>
         </main>
-
-        <!-- RIGHT SIDEBAR: PORTFOLIO -->
-        <aside>
-            <div class="section-title">Active Portfolio</div>
-            <div id="portfolio-list">
-                <div class="portfolio-card">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="font-weight: bold;">Mitsubishi Corp (8058)</span>
-                        <span style="color: var(--accent-green);">+2.4%</span>
-                    </div>
-                    <div style="font-size: 0.8rem; color: var(--text-dim);">Avg: ¥ 3,120 | Last: ¥ 3,195</div>
-                </div>
-            </div>
-
-            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                    <span>Total Value (評価額)</span>
-                    <span id="total-equity-val" style="color: var(--accent-gold); font-weight: bold;">¥ 0</span>
-                </div>
-            </div>
-        </aside>
     </div>
 
     <script>
-        let portfolioData = [];
         let currentData = [];
 
         async function loadData() {
             try {
-                // Load Targets
                 const response = await fetch('database.csv');
-                const csvText = await response.text();
+                let csvText = await response.text();
+                // Remove UTF-8 BOM if present
+                csvText = csvText.replace(/^\ufeff/, '');
                 const lines = csvText.trim().split('\n');
-                const headers = lines[0].split(',');
+                const headers = lines[0].split(',').map(h => h.trim());
 
                 currentData = lines.slice(1).map(line => {
                     const values = line.split(',');
                     let obj = {};
-                    headers.forEach((header, i) => obj[header.trim()] = values[i]);
+                    headers.forEach((header, i) => {
+                        // Remove thousand separators from numeric fields
+                        let val = values[i];
+                        if (val && /^[0-9,]+(\.[0-9]+)?$/.test(val)) {
+                            val = val.replace(/,/g, '');
+                        }
+                        obj[header] = val;
+                    });
                     return obj;
                 });
 
-                // Load Portfolio
-                await loadPortfolio();
-
-                // Update Sync Status with the CSV's timestamp
-                const latestTime = currentData.length > 0 ? currentData[0].update_time : "Unknown";
-                document.getElementById('sync-status').innerText = `LATEST SCAN: ${latestTime}`;
-                document.getElementById('sync-status').style.color = "#4fd1c5"; // Greenish
-                setTimeout(() => { document.getElementById('sync-status').style.color = "var(--text-dim)"; }, 1000);
-
-                // 🔥 Restore missing rendering calls
-                renderTickerList(currentData);
                 if (currentData.length > 0) {
-                    showDetail(currentData[0].ticker);
+                    document.getElementById('market-regime').innerText = currentData[0].regime || '--';
+                    document.getElementById('last-update').innerText = currentData[0].last_update || '--';
+                    renderTickerList(currentData);
+                    // 選択中の銘柄があれば詳細を更新、なければトップを表示
+                    const activeTicker = document.getElementById('detail-symbol').innerText;
+                    if (activeTicker && activeTicker !== '----') {
+                        showDetail(activeTicker);
+                    } else {
+                        showDetail(currentData[0].ticker);
+                    }
                 }
-            } catch (e) {
-                console.error("Error loading CSV:", e);
-            }
-        }
-
-        async function loadPortfolio() {
-            try {
-                const response = await fetch('portfolio.csv');
-                const csvText = await response.text();
-                const lines = csvText.trim().split('\n');
-                const headers = lines[0].split(',');
-
-                portfolioData = lines.slice(1).map(line => {
-                    const values = line.split(',');
-                    let obj = {};
-                    headers.forEach((header, i) => obj[header] = values[i]);
-                    return obj;
-                });
-
-                renderPortfolio();
-            } catch (e) {
-                console.log("No portfolio found.");
-            }
-        }
-
-        function renderPortfolio() {
-            const list = document.getElementById('portfolio-list');
-            list.innerHTML = '';
-            let totalEquity = 0;
-
-            portfolioData.forEach(item => {
-                const current = currentData.find(d => d.ticker === item.ticker);
-                const curPrice = current ? parseFloat(current.price) : parseFloat(item.entry_price);
-                const entryPrice = parseFloat(item.entry_price);
-                const diff = ((curPrice / entryPrice - 1) * 100).toFixed(1);
-                const color = diff >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-
-                totalEquity += curPrice * parseInt(item.quantity);
-
-                const card = document.createElement('div');
-                card.className = 'portfolio-card';
-                card.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: bold;">${item.ticker}</span>
-                        <div style="text-align: right;">
-                            <span style="color: ${color}; display: block; font-weight: 800;">${diff > 0 ? '+' : ''}${diff}%</span>
-                            <button onclick="sellPosition('${item.ticker}')" style="font-size: 0.6rem; padding: 2px 5px; margin-top: 5px; background: var(--accent-red); color: white; width: auto;">SELL</button>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 5px;">
-                        Avg: ¥ ${entryPrice.toLocaleString()} | Last: ¥ ${curPrice.toLocaleString()}
-                    </div>
-                `;
-                list.appendChild(card);
-            });
-
-            document.getElementById('total-equity-val').innerText = `¥ ${totalEquity.toLocaleString()}`;
-        }
-
-        async function sellPosition(ticker) {
-            if (!confirm(`${ticker} を売却（リストから削除）しますか？`)) return;
-
-            const response = await fetch('/api/sell', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ ticker })
-            });
-
-            if (response.ok) {
-                alert(`${ticker} の売却を記録しました！`);
-                loadPortfolio();
-            }
+            } catch (e) { console.error("CSV Load Error:", e); }
         }
 
         function renderTickerList(data) {
-            const list = document.getElementById('ticker-list');
-            list.innerHTML = '<div class="section-title">AI Scanned Targets</div>';
-
+            const container = document.getElementById('targets-container');
+            container.innerHTML = '';
             data.forEach(item => {
-                const isDefense = ["1357.T", "1459.T"].includes(item.ticker);
                 const card = document.createElement('div');
                 card.className = 'ticker-card';
                 card.onclick = () => showDetail(item.ticker);
                 card.id = `card-${item.ticker}`;
-                card.innerHTML = `
-                    <div class="ticker-header">
-                        <span class="ticker-symbol">${item.ticker} ${isDefense ? '<span class="defense-label">🛡️DEFENSE</span>' : ''}</span>
-                        <span class="ticker-score">Score: ${item.score}</span>
-                    </div>
-                    <div class="ticker-stars">${item.stars}</div>
-                `;
-                list.appendChild(card);
+                card.innerHTML = `<div class="ticker-header"><span>${item.ticker}</span><span>${item.mechanical_rule || 'SKIP'}</span></div>`;
+                container.appendChild(card);
             });
         }
 
@@ -212,44 +144,104 @@
             const item = currentData.find(d => d.ticker === ticker);
             if (!item) return;
 
-            const isDefense = ["1357.T", "1459.T"].includes(item.ticker);
-
-            // Update Active State
             document.querySelectorAll('.ticker-card').forEach(c => c.classList.remove('active'));
-            document.getElementById(`card-${ticker}`).classList.add('active');
+            const active = document.getElementById(`card-${ticker}`);
+            if (active) active.classList.add('active');
 
-            // Update Pane
-            document.getElementById('detail-symbol').innerHTML = `${item.ticker} ${isDefense ? '<span class="status-badge" style="border-color: var(--accent-gold); color: var(--accent-gold); vertical-align: middle; margin-left: 15px;">🛡️ BEAR DEFENSE</span>' : ''}`;
-            document.querySelector('.price-main').innerText = `¥ ${item.price}`;
-            document.getElementById('val-rsi').innerText = item.rsi;
-            document.getElementById('val-sigma').innerText = `${item.sigma}%`;
-            document.getElementById('val-kairi').innerText = `${item.kairi}%`;
-        }
+            document.getElementById('detail-symbol').innerText = item.ticker;
+            document.getElementById('detail-price').innerText = `¥ ${parseFloat(item.price).toLocaleString()}`;
+            document.getElementById('val-rule').innerText = item.mechanical_rule || 'SKIP';
+            document.getElementById('val-rule').style.color = (item.mechanical_rule === '🎯 STRONG ENTRY') ? 'var(--accent-green)' : 'var(--accent-red)';
+            
+            document.getElementById('val-ev').innerText = `${item.true_ev}%`;
+            document.getElementById('val-kelly').innerText = `${item.kelly_size}%`;
+            document.getElementById('val-confidence').innerText = `${item.confidence || '0'}%`;
+            document.getElementById('val-pattern').innerText = item.pattern_score || '0';
+            document.getElementById('val-stoploss-inline').innerText = parseFloat(item.stop_loss).toLocaleString();
+            
+            // Reset recalc UI
+            document.getElementById('live-price-input').value = '';
+            document.getElementById('recalc-result').style.display = 'none';
 
-        async function recordTrade() {
-            const ticker = document.getElementById('detail-symbol').innerText.split(' ')[0];
-            const price = document.querySelector('.price-main').innerText.replace('¥ ', '').replace(',', '');
-            const quantity = prompt(`${ticker} の購入株数を入力してください（例: 100）`, "100");
-
-            if (!quantity) return;
-
-            const response = await fetch('/api/record', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ticker, price, quantity })
+            const evidence = document.getElementById('rule-evidence');
+            evidence.innerHTML = '';
+            const conds = [
+                { label: 'EV', pass: parseFloat(item.true_ev) > 0.02 },
+                { label: 'CONF', pass: parseFloat(item.confidence) > 70 },
+                { label: 'VCP', pass: parseFloat(item.pattern_score) > 70 }
+            ];
+            conds.forEach(c => {
+                const dot = document.createElement('div');
+                dot.style.cssText = `font-size:0.5rem; padding:2px 5px; border:1px solid ${c.pass?'var(--accent-green)':'var(--border-color)'}; color:${c.pass?'var(--accent-green)':'var(--text-dim)'}; opacity:${c.pass?1:0.3}; border-radius:4px;`;
+                dot.innerText = `${c.pass?'✅':'❌'} ${c.label}`;
+                evidence.appendChild(dot);
             });
-
-            if (response.ok) {
-                alert(`${ticker} をスナイプ記録に保存しました！なのだ！🥇🦾✨`);
-                loadPortfolio(); // Reload UI
-            } else {
-                alert("エラーが発生しました。");
-            }
         }
+
+        function copyOrderDetails() {
+            const ticker = document.getElementById('detail-symbol').innerText;
+            const price = document.getElementById('detail-price').innerText;
+            const sl = document.getElementById('val-stoploss-inline').innerText;
+            const text = `【Sniper AI】\n銘柄: ${ticker}\n価格: ${price}\n損切: ¥ ${sl}`;
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+        }
+
+        async function recalcEV() {
+            const ticker = document.getElementById('detail-symbol').innerText;
+            const livePrice = document.getElementById('live-price-input').value;
+            if (!livePrice) return;
+
+            try {
+                const response = await fetch('/api/recalc', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker: ticker, live_price: livePrice })
+                });
+                const res = await response.json();
+                if (res.status === 'success') {
+                    document.getElementById('recalc-result').style.display = 'block';
+                    const evVal = document.getElementById('live-ev-val');
+                    evVal.innerText = `${res.new_ev}%`;
+                    evVal.style.color = res.new_ev > 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+                    
+                    document.getElementById('live-gap-val').innerText = `${res.gap > 0 ? '+' : ''}${res.gap}%`;
+                    document.getElementById('live-decay-val').innerText = `${Math.round(res.time_decay * 100)}%`;
+                    
+                    const verdict = document.getElementById('live-verdict');
+                    verdict.innerText = res.verdict;
+                    
+                    if (res.verdict === '🚫 TOO LATE') {
+                        verdict.style.background = '#333';
+                        verdict.style.color = 'var(--accent-red)';
+                        verdict.style.boxShadow = 'none';
+                    } else if (res.verdict.includes('STRONG')) {
+                        verdict.style.background = 'var(--accent-gold)';
+                        verdict.style.color = '#000';
+                        verdict.style.boxShadow = '0 0 20px var(--accent-gold)';
+                    } else if (res.verdict.includes('GO')) {
+                        verdict.style.background = 'var(--accent-green)';
+                        verdict.style.color = '#000';
+                        verdict.style.boxShadow = 'none';
+                    } else if (res.verdict.includes('WEAK')) {
+                        verdict.style.background = 'rgba(255,255,255,0.1)';
+                        verdict.style.color = 'var(--accent-gold)';
+                        verdict.style.border = '1px solid var(--accent-gold)';
+                        verdict.style.boxShadow = 'none';
+                    } else {
+                        verdict.style.background = 'var(--accent-red)';
+                        verdict.style.color = '#fff';
+                        verdict.style.boxShadow = 'none';
+                    }
+                }
+            } catch (e) { console.error("Recalc Error:", e); }
+        }
+
+        function recordTrade() { alert("Recorded!"); }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text); alert("Ticker Copied!"); }
 
         loadData();
-        setInterval(loadData, 30000); // 30秒ごとに自動更新に変更！
+        setInterval(loadData, 10000); // 10秒おきに最新の database.csv をチェック
     </script>
 </body>
-
 </html>

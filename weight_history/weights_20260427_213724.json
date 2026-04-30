@@ -1,0 +1,29 @@
+{
+    "last_updated": "2026-03-19",
+    "regime_bull": {
+        "rsi_weight": 0.3,
+        "kairi_weight": 0.2,
+        "vol_weight": 0.5,
+        "sigma_filter": 1.0,
+        "short_weight": 0.0
+    },
+    "regime_bear": {
+        "rsi_weight": 0.6,
+        "kairi_weight": 0.3,
+        "vol_weight": 0.1,
+        "sigma_filter": 0.8
+    },
+    "regime_volatile": {
+        "rsi_weight": 0.3,
+        "kairi_weight": 0.2,
+        "vol_weight": 0.5,
+        "sigma_filter": 1.0,
+        "short_weight": 0.2
+    },
+    "metadata": {
+        "last_trained": "2026-04-27 21:36",
+        "training_regime": "VOLATILE",
+        "val_score_pct": 0.0,
+        "walk_forward": true
+    }
+}

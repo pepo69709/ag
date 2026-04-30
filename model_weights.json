@@ -3,9 +3,8 @@
     "regime_bull": {
         "rsi_weight": 0.3,
         "kairi_weight": 0.2,
-        "vol_weight": 0.5,
-        "sigma_filter": 1.0,
-        "short_weight": 0.0
+        "vol_weight": 0.2,
+        "mom_weight": 0.6
     },
     "regime_bear": {
         "rsi_weight": 0.6,
@@ -21,9 +20,8 @@
         "short_weight": 0.2
     },
     "metadata": {
-        "last_trained": "2026-04-24 02:36",
-        "training_regime": "VOLATILE",
-        "val_score_pct": 0.0,
-        "walk_forward": true
+        "last_trained": "2026-04-28 00:11",
+        "training_regime": "BULL",
+        "val_score_pct": 0.0
     }
 }
