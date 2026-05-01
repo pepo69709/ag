@@ -12,7 +12,7 @@ from datetime import datetime
 # ===========================================================================
 
 TICKERS = ["6857.T", "6146.T", "8035.T", "8058.T", "4063.T", "8306.T", "9432.T"]
-DISCORD_WEBHOOK = "YOUR_WEBHOOK_URL_HERE"
+DISCORD_WEBHOOK = "https://discordapp.com/api/webhooks/1499426291932332222/oLvczcsPgBSCmhq7bIATLbJtpIgwwLoeiO_H6G1XF9QDpt3abAPv5vk_JHfH692tqY1t"
 
 class SovereignSniper:
     def __init__(self, tickers):

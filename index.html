@@ -21,8 +21,9 @@
                 <span style="margin-left: 20px; color: var(--text-dim);">Live: <span id="last-update" style="color: var(--accent-green);">--</span></span>
             </div>
             <div class="market-status">
-                <button onclick="loadData()" class="refresh-btn">🔄 REFRESH</button>
+                <button onclick="loadData(true)" class="refresh-btn">🔄 REFRESH</button>
             </div>
+
         </header>
 
         <!-- LEFT NAV -->
@@ -89,9 +90,20 @@
     <script>
         let currentData = [];
 
-        async function loadData() {
+        async function loadData(isRefresh = false) {
             try {
+                if (isRefresh) {
+                    // ボタンが押された時はサーバー側で最新データを取得させる
+                    const btn = document.querySelector('.refresh-btn');
+                    btn.innerText = "⏳ SYNCING...";
+                    btn.disabled = true;
+                    await fetch('/api/refresh', { method: 'POST' });
+                    btn.innerText = "🔄 REFRESH";
+                    btn.disabled = false;
+                }
+
                 const response = await fetch('database.csv');
+
                 let csvText = await response.text();
                 // Remove UTF-8 BOM if present
                 csvText = csvText.replace(/^\ufeff/, '');

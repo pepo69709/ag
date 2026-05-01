@@ -18,7 +18,7 @@ from datetime import datetime
 # ===========================================================================
 
 # --- [設定] ---
-DISCORD_WEBHOOK_URL = "YOUR_DISCORD_WEBHOOK_HERE"
+DISCORD_WEBHOOK_URL = "https://discordapp.com/api/webhooks/1499426291932332222/oLvczcsPgBSCmhq7bIATLbJtpIgwwLoeiO_H6G1XF9QDpt3abAPv5vk_JHfH692tqY1t"
 # 月次メンテナンスで更新される「 Winners Circle 」リスト
 TICKERS = ["6857.T", "6146.T", "8035.T", "8058.T", "4063.T", "4502.T", "8306.T"]
 SCORE_THRESHOLD = 0.65
