@@ -30,7 +30,18 @@ if __name__ == "__main__":
         exit(1)
         
     print(f"[*] Cloud Scan Started: {datetime.now()}")
+    found_any = False
     for t in TICKERS:
+        print(f"   [Scan] Checking {t}...")
         if check_logic(t):
             notify(t)
+            found_any = True
+    
+    # ユーザーへの安心用メッセージ
+    status_msg = "✅ **Cloud Sniper: 定期巡回完了**\n現在、狙撃条件に合致する銘柄はありません。監視を継続します。"
+    if found_any:
+        status_msg = "🎯 **Cloud Sniper: 狙撃シグナルを検知しました！**\n詳細は上記の通知を確認してください。"
+    
+    requests.post(DISCORD_WEBHOOK, json={"content": status_msg})
     print("[*] Scan Finished.")
+
