@@ -101,7 +101,9 @@ class Indicators:
     @staticmethod
     def get_pattern_score(df):
         """チャートの『形』を100点満点でスコアリングする"""
+        if len(df) < 10: return 0.0
         vcp = Indicators.detect_vcp(df)
+
         
         # Bull Flag 判定 (10日前までの急騰後の横ばい)
         price_spike = (df['Close'].iloc[-1] / df['Close'].iloc[-10] - 1) > 0.05

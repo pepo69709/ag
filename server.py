@@ -7,143 +7,136 @@ import glob
 from datetime import datetime
 import numpy as np
 import yfinance as yf
+import pickle
+import threading
+import time
+from indicators import Indicators
 from strategy_core import get_signal
 from execution_engine import ExecutionEngine
+from risk_engine import RiskEngine
 
-# -------------------------------------------------
-# 【精鋭 10 銘柄】クラウド Sniper と完全同期
-# -------------------------------------------------
-TICKERS = ["6857.T", "6146.T", "8035.T", "8058.T", "4063.T", "8306.T", "9432.T", "8411.T", "8802.T", "4503.T"]
+TICKERS = [
+    '8035.T', '6920.T', '6146.T', '6857.T', '4063.T', '6501.T',
+    '6702.T', '6723.T', '6752.T', '6758.T', '6981.T', '6902.T',
+    '6954.T', '7733.T', '7741.T', '6971.T', '7203.T', '7267.T',
+    '7269.T', '7201.T', '7261.T', '7270.T', '7272.T', '7011.T',
+    '7012.T', '8306.T', '8316.T', '8411.T', '8766.T', '8725.T',
+    '8604.T', '8750.T', '7182.T', '8001.T', '8002.T', '8031.T',
+    '8053.T', '8058.T', '5020.T', '5019.T', '9984.T', '9432.T',
+    '9433.T', '9434.T', '4689.T', '3659.T', '4755.T', '9983.T',
+    '8267.T', '7974.T', '2413.T', '3382.T', '4502.T', '4503.T',
+    '4519.T', '4568.T', '4507.T', '6367.T', '6301.T', '6326.T',
+    '7832.T', '6113.T', '4183.T', '4188.T', '4204.T', '3407.T',
+    '5401.T', '5406.T', '8802.T', '8801.T', '8830.T', '1928.T',
+    '1925.T', '2802.T', '2503.T', '2587.T', '2269.T', '6098.T',
+    '4661.T', '9602.T', '9201.T', '1458.T', '1459.T', '1357.T'
+]
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
 
-def load_latest_database():
-    if os.path.exists("database.csv"):
-        df = pd.read_csv("database.csv")
-        return df[df['ticker'].isin(TICKERS)]
-    return pd.DataFrame()
+class SniperBrain:
+    def __init__(self):
+        try:
+            with open('models/model_lgbm.pkl', 'rb') as f: self.lgbm = pickle.load(f)
+            with open('models/model_clf.pkl',  'rb') as f: self.clf  = pickle.load(f)
+            with open('models/feature_cols.pkl', 'rb') as f: self.feature_cols = pickle.load(f)
+            print('[SUCCESS] Brain V9.8.3 (Auto-Patrol) Loaded.')
+        except: self.lgbm = self.clf = None
 
-portfolio_path = "portfolio.json"
-positions_file = "positions.json"
-log_file = "trade_log.csv"
-engine = ExecutionEngine(positions_file, log_file)
+    def predict_ev(self, df, mkt_trend, fx_roc, mkt_vol):
+        if self.lgbm is None: return 0.0, 0, 0, 0, 0.5
+        c = df['Close']
+        p = float(c.iloc[-1])
+        rsi = Indicators.rsi(df).iloc[-1]
+        ml, ms = Indicators.macd(df)
+        bu, bm, bl = Indicators.bbands(df)
+        atr, adx = Indicators.atr(df).iloc[-1], Indicators.adx(df).iloc[-1]
+        s20, s50, s200 = c.rolling(20).mean().iloc[-1], c.rolling(50).mean().iloc[-1], c.rolling(200).mean().iloc[-1]
+        v20 = df['Volume'].rolling(20).mean().iloc[-1]
+        h250 = df['High'].rolling(250).max().iloc[-1]
+        f_dict = {
+            'RSI': rsi, 'MACD': ml.iloc[-1], 'MACD_Signal': ms.iloc[-1],
+            'BB_Upper': bu.iloc[-1], 'BB_Mid': bm.iloc[-1], 'BB_Lower': bl.iloc[-1],
+            'ATR': atr, 'ADX': adx, 'SMA_20': s20, 'SMA_50': s50, 'SMA_200': s200,
+            'kairi_20': (p/s20-1)*100, 'kairi_200': (p/s200-1)*100, 'vol_ratio': float(df['Volume'].iloc[-1])/(v20+1e-9),
+            'return_lag_1': c.pct_change(1).iloc[-1]*100, 'rsi_lag_1': Indicators.rsi(df).iloc[-2],
+            'return_lag_2': c.pct_change(1).iloc[-2]*100, 'rsi_lag_2': Indicators.rsi(df).iloc[-3],
+            'return_lag_3': c.pct_change(1).iloc[-2]*100, 'rsi_lag_3': Indicators.rsi(df).iloc[-4],
+            'high_52w_ratio': p/(h250+1e-9), 'roc_20': c.pct_change(20).iloc[-1]*100,
+            'bb_position': (p-bl.iloc[-1])/(bu.iloc[-1]-bl.iloc[-1]+1e-9),
+            'atr_compression': Indicators.atr(df,7).iloc[-1]/Indicators.atr(df,30).iloc[-1],
+            'vol_trend': df['Volume'].rolling(5).mean().iloc[-1]/(v20+1e-9),
+            'mkt_trend': mkt_trend, 'fx_roc': fx_roc, 'mkt_vol': mkt_vol
+        }
+        X = pd.DataFrame([f_dict])[self.feature_cols]
+        ev = float(self.lgbm.predict(X)[0])
+        prob = float(self.clf.predict_proba(X)[0][1])
+        threshold = 0.60 if mkt_vol > 2.0 else 0.55
+        return ev, (1 if prob >= threshold else 0), p, (Indicators.atr(df).iloc[-1]/p*100*2.236), prob
+
+brain = SniperBrain()
+
+def run_scan_internal():
+    try:
+        ts = datetime.now().strftime('%H:%M:%S')
+        print(f"[AUTO] {ts} 定時スキャン開始...")
+        n = yf.download('^N225', period='1mo', progress=False)
+        j = yf.download('JPY=X', period='1mo', progress=False)
+        if isinstance(n.columns, pd.MultiIndex): n.columns = n.columns.get_level_values(0)
+        if isinstance(j.columns, pd.MultiIndex): j.columns = j.columns.get_level_values(0)
+        mt = (n['Close'].iloc[-1]/n['Close'].rolling(20).mean().iloc[-1]-1)*100
+        fr = j['Close'].pct_change(5).iloc[-1]*100
+        mv = (Indicators.atr(n).iloc[-1]/n['Close'].iloc[-1])*100
+        
+        rows = []
+        log_rows = []
+        now = datetime.now().isoformat()
+        for t in TICKERS:
+            d = yf.download(t, period='2y', progress=False)
+            if d.empty or len(d)<250: continue
+            if isinstance(d.columns, pd.MultiIndex): d.columns = d.columns.get_level_values(0)
+            ev, win, p, rng, pb = brain.predict_ev(d, mt, fr, mv)
+            v = Indicators.get_pattern_score(d)
+            threshold = 0.60 if mv > 2.0 else 0.55
+            is_s = (get_signal(d) and pb >= threshold and p <= 15000 and v >= 65)
+            
+            rows.append({
+                'ticker':t, 'price':p, 'score':0.88 if is_s else 0.32, 'win_prob':win,
+                'pattern_score':v, 'mechanical_rule':'🎯 STRONG' if is_s else '⏳ WAIT',
+                'true_ev':round(ev*100,2), 'expected_range':round(rng,2), 'target_price':round(p*(1+ev),1),
+                'analysis': f'Prob:{round(pb*100,1)}%'
+            })
+            log_rows.append({
+                'timestamp': now, 'ticker': t, 'price': p, 'ai_prob': pb, 'ai_ev': ev,
+                'mkt_vol': mv, 'mkt_trend': mt, 'fx_roc': fr, 'is_strong': 1 if is_s else 0
+            })
+            
+        pd.DataFrame(rows).to_csv('database.csv', index=False)
+        log_file = 'prediction_audit_log.csv'
+        log_df = pd.DataFrame(log_rows)
+        if os.path.exists(log_file): log_df.to_csv(log_file, mode='a', header=False, index=False)
+        else: log_df.to_csv(log_file, index=False)
+        print(f"[AUTO] {ts} スキャン完了。")
+    except Exception as e: print(f"[ERROR] Auto scan failed: {e}")
+
+def auto_scan_loop():
+    while True:
+        run_scan_internal()
+        print("[AUTO] 次回スキャンまで1時間待機します...")
+        time.sleep(3600)
 
 @app.route('/')
-def index():
-    return send_from_directory('.', 'index.html')
+def index(): return send_from_directory('.', 'index.html')
 
 @app.route('/<path:path>')
-def static_files(path):
-    return send_from_directory('.', path)
+def static_files(path): return send_from_directory('.', path)
 
 @app.route('/api/refresh', methods=['POST'])
-def refresh_live_data():
-    """V110.0: [完全同期] クラウド Sniper と同じ脳(strategy_core)で更新"""
-    try:
-        updated_rows = []
-        for ticker in TICKERS:
-            print(f"[*] Cloud Sync: {ticker}...")
-            data = yf.download(ticker, period="5d", interval="60m", progress=False)
-            if data.empty: continue
-            
-            # 共通の脳(strategy_core)で判定
-            match = get_signal(data)
-            
-            current_price = float(data['Close'].iloc[-1]) if not data.empty else 0
-            score = 0.88 if match else 0.32
-            
-            updated_rows.append({
-                'ticker': ticker,
-                'price': current_price,
-                'score': score,
-                'confidence': 90.0 if match else 30.0,
-                'pattern_score': 85.0 if match else 40.0,
-                'mechanical_rule': '🎯 STRONG ENTRY' if match else '⏳ WAIT',
-                'true_ev': None,
-                'kelly_size': None,
-                'signal_timestamp': datetime.now().isoformat(),
-                'regime': 'SCANNING',
-                'stars': '⭐⭐⭐⭐⭐' if match else '---',
-                'analysis': 'Strategic Match' if match else 'Waiting...',
-                'volatility': 0.012,
-                'stop_loss': round(current_price * 0.98, 1)
-            })
-            
-        new_db = pd.DataFrame(updated_rows)
-        new_db.to_csv("database.csv", index=False)
-        return jsonify({"status": "success", "message": "Unified Sync Complete"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/api/record', methods=['POST'])
-def record_trade():
-    try:
-        data = request.json
-        positions = engine.load_positions()
-        if not any(p['ticker'] == data['ticker'] for p in positions):
-            positions.append({
-                "ticker": data['ticker'],
-                "entry_price": float(data['price']),
-                "entry_date": datetime.now().strftime("%Y-%m-%d"),
-                "entry_ev": data.get('true_ev', 0),
-                "entry_win_prob": data.get('win_prob', 0),
-                "note": data.get('note', "")
-            })
-            engine.save_positions(positions)
-        return jsonify({"status": "success"})
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route('/api/portfolio', methods=['GET'])
-def get_portfolio():
-    if os.path.exists(portfolio_path):
-        with open(portfolio_path, "r") as f:
-            portfolio = json.load(f)
-    elif os.path.exists("portfolio.csv"):
-        df = pd.read_csv("portfolio.csv")
-        portfolio = df.to_dict(orient='records')
-    else:
-        portfolio = []
-    db = load_latest_database()
-    if not db.empty:
-        current_prices = dict(zip(db['ticker'], db['price']))
-        engine.check_exits(current_prices)
-    return jsonify(portfolio)
-
-@app.route('/api/performance', methods=['GET'])
-def get_performance():
-    if not os.path.exists(log_file): return jsonify({"ic": 0, "equity": [], "hit_rate": 0, "status": "No Data"})
-    df = pd.read_csv(log_file)
-    return jsonify({"ic": 0.1, "equity": df['pnl_rate'].cumsum().tolist() if 'pnl_rate' in df else [], "hit_rate": 55.0})
-
-@app.route('/api/recalc', methods=['POST'])
-def recalc_ev():
-    try:
-        import math
-        data = request.json
-        ticker = data['ticker']
-        live_price = float(data['live_price'])
-        db = load_latest_database()
-        row = db[db['ticker'] == ticker]
-        if row.empty: return jsonify({"status": "error", "message": "Ticker not found"}), 404
-        row = row.iloc[0]
-        signal_price = float(row['price'])
-        signal_ev = 0.02
-        volatility = 0.012
-        signal_ts = datetime.fromisoformat(row['signal_timestamp'])
-        elapsed_mins = (datetime.now() - signal_ts).total_seconds() / 60
-        decay_ratio = elapsed_mins / 30
-        time_decay = max(0.3, math.exp(-decay_ratio))
-        target_price = signal_price * (1 + signal_ev * time_decay)
-        new_ev = (target_price - live_price) / live_price
-        price_gap = (live_price - signal_price) / signal_price
-        if price_gap > 0.02: verdict = "🚫 TOO LATE"
-        elif new_ev > (volatility * 1.5): verdict = "✅ GO"
-        else: verdict = "⏳ WAIT"
-        return jsonify({"status": "success", "ticker": ticker, "live_price": live_price, "new_ev": round(new_ev * 100, 3), "time_decay": round(time_decay, 2), "gap": round(price_gap * 100, 2), "verdict": verdict})
-    except Exception as e: return jsonify({"status": "error", "message": str(e)}), 500
+def refresh():
+    threading.Thread(target=run_scan_internal).start()
+    return jsonify({'status':'processing'})
 
 if __name__ == '__main__':
-    print("Sniper AI: Cloud Mirror Backend starting at http://localhost:5000")
-    app.run(port=5000, debug=True)
+    threading.Thread(target=auto_scan_loop, daemon=True).start()
+    app.run(port=5000)
