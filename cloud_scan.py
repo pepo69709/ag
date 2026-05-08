@@ -80,9 +80,29 @@ def run_cloud_scan():
                 'ev': round(ev*100, 2), 'vcp': v, 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M')
             })
 
-    if gas_url and strong_results:
-        try: requests.post(gas_url, json={'signals': strong_results}, timeout=30)
-        except: pass
+    # Discord & GAS に送信
+    discord_url = os.environ.get("DISCORD_WEBHOOK")
+    
+    if strong_results:
+        # --- GAS送信 ---
+        if gas_url:
+            try: requests.post(gas_url, json={'signals': strong_results}, timeout=30)
+            except: pass
+            
+        # --- Discord送信 ---
+        if discord_url:
+            content = "🎯 **SNIPER STRONG SIGNAL DETECTED!**\n"
+            for s in strong_results:
+                content += f"\n> **{s['ticker']}** ({s['price']}円)\n> 勝率: {s['prob']}% / 期待値: {s['ev']}%\n> VCP: {s['vcp']} / Time: {s['timestamp']}\n"
+            try: requests.post(discord_url, json={'content': content}, timeout=30)
+            except: pass
+            
+        # CSV保存 (GitHub Actionsがこれをcommitします)
+        res_df = pd.DataFrame(strong_results)
+        res_df.to_csv("latest_signals.csv", index=False)
+        print(f"[CLOUD] Detection success! {len(strong_results)} signals saved to latest_signals.csv")
+    else:
+        print("[CLOUD] No STRONG signals detected.")
 
 if __name__ == '__main__':
     run_cloud_scan()

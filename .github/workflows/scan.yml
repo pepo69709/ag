@@ -1,7 +1,10 @@
-﻿name: Sniper Cloud Scanner
+name: Sniper Cloud Scanner
 on:
   schedule:
     - cron: '0 0-6 * * 1-5'
+  repository_dispatch:
+    types: [gas_trigger]
+
   workflow_dispatch:
 jobs:
   scan:
@@ -20,4 +23,14 @@ jobs:
       - name: Run Sniper Scan
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: python cloud_scan.py
+
+      - name: Commit and Push CSV
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add latest_signals.csv || echo "No changes to commit"
+          git commit -m "Update scan results: $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
+          git push
+
