@@ -30,12 +30,13 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          if [ -f latest_signals.csv ]; then
-            git add latest_signals.csv
-            git commit -m "Update scan results: $(date +'%Y-%m-%d %H:%M')"
+          if [ -f sniper_audit_history.csv ]; then
+            git add sniper_audit_history.csv
+            git commit -m "Update audit history: $(date +'%Y-%m-%d %H:%M')"
             git push
           else
-            echo "No signals found today. Skipping push."
+            echo "No history file found. Skipping push."
           fi
+
 
 

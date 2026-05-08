@@ -77,35 +77,65 @@ def run_cloud_scan():
         if is_s:
             strong_results.append({
                 'ticker': t, 'price': round(p, 1), 'prob': round(pb*100, 1),
-                'ev': round(ev*100, 2), 'vcp': v, 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M')
+                'ev': round(ev*100, 2), 'vcp': v, 'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M'),
+                'features': f_dict # 全特徴量を記録
             })
 
-    # Discord & GAS に送信
+
+    # --- GAS & Discord 送信データ準備 ---
     discord_url = os.environ.get("DISCORD_WEBHOOK")
-    
+    market_state = {
+        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M'),
+        'mkt_vol': round(mv, 2),
+        'mkt_trend': round(mt, 2),
+        'fx_roc': round(fr, 2),
+        'count': len(strong_results)
+    }
+
+    # --- GAS送信 (市場環境データも含めて全パトロールを記録) ---
+    if gas_url:
+        payload = {
+            'market': market_state,
+            'signals': strong_results
+        }
+        try: requests.post(gas_url, json=payload, timeout=30)
+        except: pass
+
     if strong_results:
-        # --- GAS送信 ---
-        if gas_url:
-            try: requests.post(gas_url, json={'signals': strong_results}, timeout=30)
-            except: pass
-            
         # --- Discord送信 ---
         if discord_url:
-            content = "🎯 **SNIPER STRONG SIGNAL DETECTED!**\n"
+            content = f"🎯 **SNIPER STRONG SIGNAL DETECTED!** (Vol:{market_state['mkt_vol']})\n"
             for s in strong_results:
-                content += f"\n> **{s['ticker']}** ({s['price']}円)\n> 勝率: {s['prob']}% / 期待値: {s['ev']}%\n> VCP: {s['vcp']} / Time: {s['timestamp']}\n"
+                content += f"\n> **{s['ticker']}** ({s['price']}円)\n> 勝率: {s['prob']}% / 期待値: {s['ev']}%\n"
             try: requests.post(discord_url, json={'content': content}, timeout=30)
             except: pass
+
+        # --- 蓄積型CSV保存 (将来の学習用) ---
+        history_file = "sniper_audit_history.csv"
+        new_df = pd.DataFrame(strong_results)
+        
+        # 特徴量を文字列化
+        if 'features' in new_df.columns:
+            new_df['features'] = new_df['features'].apply(lambda x: str(x))
             
-        # CSV保存 (GitHub Actionsがこれをcommitします)
-        res_df = pd.DataFrame(strong_results)
-        res_df.to_csv("latest_signals.csv", index=False)
-        print(f"[CLOUD] Detection success! {len(strong_results)} signals saved to latest_signals.csv")
+        if os.path.exists(history_file):
+            try:
+                old_df = pd.read_csv(history_file)
+                final_df = pd.concat([old_df, new_df], ignore_index=True)
+            except: final_df = new_df
+        else:
+            final_df = new_df
+            
+        final_df.to_csv(history_file, index=False)
+        print(f"[CLOUD] Detection success! {len(strong_results)} signals appended to {history_file}")
+
+
     else:
         print("[CLOUD] No STRONG signals detected.")
         if discord_url:
-            try: requests.post(discord_url, json={'content': "🛰️ **Sniper Cloud Check**: パトロール完了。現在、狙撃対象はありません。休憩します。"}, timeout=30)
-            except: pass
+            # 6時間に1回くらいは生存報告を送る（あるいは送らない設定も可）
+            pass
+
 
 
 if __name__ == '__main__':
