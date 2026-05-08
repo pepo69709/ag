@@ -30,7 +30,12 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add latest_signals.csv || echo "No changes to commit"
-          git commit -m "Update scan results: $(date +'%Y-%m-%d %H:%M')" || echo "No changes to commit"
-          git push
+          if [ -f latest_signals.csv ]; then
+            git add latest_signals.csv
+            git commit -m "Update scan results: $(date +'%Y-%m-%d %H:%M')"
+            git push
+          else
+            echo "No signals found today. Skipping push."
+          fi
+
 
