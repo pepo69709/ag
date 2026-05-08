@@ -103,6 +103,10 @@ def run_cloud_scan():
         print(f"[CLOUD] Detection success! {len(strong_results)} signals saved to latest_signals.csv")
     else:
         print("[CLOUD] No STRONG signals detected.")
+        if discord_url:
+            try: requests.post(discord_url, json={'content': "🛰️ **Sniper Cloud Check**: パトロール完了。現在、狙撃対象はありません。休憩します。"}, timeout=30)
+            except: pass
+
 
 if __name__ == '__main__':
     run_cloud_scan()
